@@ -1,0 +1,2250 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PI System guided tour</title>
+<style>
+:root {
+  --bg: #f3f6f7; --panel: #ffffff; --soft: #e9eff1; --text: #1c2a33; --muted: #566771;
+  --border: #c5d1d7; --accent: #0a6f7e; --accent-text: #ffffff; --accent-tint: #dcf0f3;
+  --warn: #8a5200; --warn-tint: #fbefd9;
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f171c; --panel: #172229; --soft: #1e2c34; --text: #e3ebef; --muted: #9bacb5;
+    --border: #2d3d46; --accent: #4cc3d4; --accent-text: #0b1a1f; --accent-tint: #173540;
+    --warn: #f0b45a; --warn-tint: #2e2616;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); overflow-x: hidden;
+  display: flex; flex-direction: column; padding: 0 16px; gap: 8px; }
+header { padding-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; }
+h1 { font-size: 1.1rem; margin: 0; font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+button, select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 11px; cursor: pointer; }
+select { max-width: 240px; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#progress { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 7em; text-align: center; }
+.show { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 0.8rem; color: var(--muted); align-items: center; }
+.show label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+
+main { flex: 1 1 auto; min-height: 0; display: grid; gap: 10px; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); }
+#left { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+#map-wrap { flex: 1 1 auto; min-height: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  display: flex; align-items: center; overflow: auto; }
+#map { width: 100%; height: auto; max-height: 100%; display: block; min-width: 560px; }
+#flows { min-height: 2.6em; font-size: 0.8rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+#flows b { color: var(--accent); font-weight: 600; }
+.legend { font-size: 0.72rem; color: var(--muted); }
+
+#panel { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+#panel h2 { margin: 0 0 6px; font-size: 1.05rem; }
+.preview { font-size: 0.72rem; color: var(--muted); margin: -2px 0 4px; }
+.remember { background: var(--accent-tint); border-left: 4px solid var(--accent); border-radius: 4px; padding: 6px 10px; font-size: 0.88rem; font-weight: 600; margin: 6px 0 8px; }
+.sec { margin: 8px 0; }
+.sec h3 { margin: 0 0 3px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+.sec p, .sec li { font-size: 0.84rem; line-height: 1.4; margin: 0; }
+.sec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.sec .muted { color: var(--muted); }
+.sec.limits h3 { color: var(--warn); }
+.sec.limits { background: var(--warn-tint); border-radius: 5px; padding: 6px 10px; }
+.sec.sample { border: 1px dashed var(--border); border-radius: 5px; padding: 6px 10px; }
+.tbc { font-style: italic; color: var(--muted); font-size: 0.82rem; }
+dl { margin: 0; font-size: 0.82rem; line-height: 1.35; }
+dt { font-weight: 600; margin-top: 3px; }
+dd { margin: 0; color: var(--muted); }
+.nm { font-weight: 600; }
+.lg { color: var(--muted); font-size: 0.78rem; }
+
+#panel > * { flex: 0 0 auto; }
+.walkctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; position: sticky; bottom: -12px; margin: auto -14px -12px; padding: 8px 14px; background: var(--panel); border-top: 1px solid var(--border); z-index: 5; }
+.linkbtn { border: 0; background: none; color: var(--accent); padding: 0 2px; font-size: 0.84rem; text-decoration: underline; cursor: pointer; }
+.walk .toggle { display: none; gap: 0; margin: 6px 0 0; }
+.walk .toggle button { border-radius: 0; padding: 4px 12px; }
+.walk .toggle button:first-child { border-radius: 6px 0 0 6px; }
+.walk .toggle button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.walk .toggle button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+#flows .hop { color: var(--muted); }
+.sec.walk { margin: 8px 0; }
+.chart { margin-top: 4px; }
+.chart svg { width: 100%; height: auto; display: block; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; }
+.chart .ax { font-size: 10px; fill: var(--muted); }
+.chart .ax.t { font-size: 10.5px; font-weight: 600; }
+.chart .pl { font-size: 11px; font-weight: 600; fill: var(--text); text-anchor: middle; }
+.chart .dl, .chart .ed { fill: var(--accent); font-weight: 600; }
+.chart .hlt { fill: var(--accent); font-weight: 600; }
+.chart .lg2 { fill: var(--text); font-size: 10.5px; }
+.walk .caption { font-size: 0.86rem; line-height: 1.35; margin: 6px 0; }
+.walkctl .stepno { font-size: 0.8rem; color: var(--muted); min-width: 6em; text-align: center; }
+.walk .key { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+.walk details { margin-top: 6px; font-size: 0.8rem; }
+.walk summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.walk table { border-collapse: collapse; width: 100%; margin-top: 4px; }
+.walk th, .walk td { border: 1px solid var(--border); padding: 2px 5px; text-align: left; font-size: 0.74rem; }
+.walk tr.cur td { background: var(--accent-tint); font-weight: 600; }
+
+#narration { background: var(--panel); border: 1px solid var(--border); border-left: 5px solid var(--accent);
+  border-radius: 6px; padding: 8px 14px; font-size: 1rem; min-height: 2.9em; }
+#narration .stage-name { color: var(--accent); font-weight: 600; margin-right: 8px; }
+footer { padding-bottom: 8px; font-size: 0.72rem; color: var(--muted); }
+
+/* map */
+.zone { fill: var(--soft); opacity: 0.55; }
+.zone-label { font-size: 10px; fill: var(--muted); font-weight: 600; text-anchor: middle; text-transform: uppercase; letter-spacing: 0.06em; }
+.edge { fill: none; stroke: var(--accent); stroke-width: 1.8; opacity: 0.12; transition: opacity 0.3s; }
+.edge.seen { opacity: 0.45; }
+.edge.focus { opacity: 1; stroke-width: 2.4; stroke-dasharray: 7 5; animation: march 0.8s linear infinite; }
+.edge.ref { stroke-dasharray: 3 4; }
+.edge.focus.ref { stroke-dasharray: 7 5; }
+@keyframes march { to { stroke-dashoffset: -12; } }
+.mk { fill: var(--accent); }
+.pulse { fill: var(--accent); }
+.node rect { fill: var(--bg); stroke: var(--border); stroke-width: 1.2; transition: all 0.3s; }
+.node { opacity: 0.22; transition: opacity 0.3s; color: var(--muted); }
+.node.seen { opacity: 1; color: var(--accent); }
+.node.focus { opacity: 1; color: var(--accent); }
+.node.focus rect { fill: var(--accent-tint); stroke: var(--accent); stroke-width: 2.4; }
+.node .l1 { font-size: 10.5px; font-weight: 600; fill: var(--text); text-anchor: middle; }
+.node .l2 { font-size: 8.5px; fill: var(--muted); text-anchor: middle; }
+.node .ic { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hub circle { fill: var(--accent); }
+.node .ring { fill: none; stroke: var(--warn); stroke-width: 3; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.node[data-ring="1"] .ring { opacity: 1; }
+.node[data-ring="1"] { opacity: 1; }
+.badge { display: none; stroke: var(--accent); stroke-width: 1.6; }
+svg.badges .badge, #storelegend .badge { display: block; }
+.badge.record { fill: var(--accent); }
+.badge.cache { fill: var(--bg); }
+.badge.copy { fill: var(--bg); stroke-dasharray: 2 1.6; }
+#storelegend .lgi svg { vertical-align: -2px; }
+.chead { color: var(--accent); }
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  #panel { max-height: none; }
+  body { overflow-y: auto; height: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .node .ring { transition: none; }
+  .edge.focus { animation: none; }
+  .pulse { display: none; }
+  .node, .edge, .node rect { transition: none; }
+}
+body.hide-names .sec.names, body.hide-limits .sec.limits, body.hide-governance .sec.governance,
+body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PI System guided tour</h1>
+  <div class="controls" role="group" aria-label="Tour controls">
+    <button id="reset" type="button" title="Start (Home)">Start</button>
+    <button id="prev" type="button" title="Previous (Left arrow)">Previous</button>
+    <span id="progress">Stage 0 of 0</span>
+    <button id="next" type="button" class="primary" title="Next (Right arrow or Space)">Next</button>
+    <button id="all" type="button" title="Last stage (End)">End</button>
+    <select id="jump" aria-label="Jump to stage"></select>
+    <button id="full" type="button" title="Fullscreen (F)">Fullscreen</button>
+  </div>
+  <div class="show" id="show" role="group" aria-label="Sections to show"></div>
+</header>
+
+<main>
+  <div id="left">
+    <div id="map-wrap"><svg id="map" role="img" aria-label="PI System architecture map"></svg></div>
+    <div id="flows" aria-live="off"></div>
+    <div class="legend" id="storelegend" hidden></div>
+    <div class="legend">Bright = this stage · solid = introduced earlier · faint = not yet · animated arrows = data moving in this stage · dotted two-way line = reference</div>
+  </div>
+  <section id="panel" aria-label="Stage detail" tabindex="-1"></section>
+</main>
+
+<div id="narration" aria-live="polite"></div>
+<footer id="footer"></footer>
+
+<script type="application/json" id="story-data">
+{
+  "edition": "2026-10-17",
+  "contentNote": "Checked on 16 October 2026 against public AVEVA documentation, AVEVA announcements and training material (see the last stage). Items marked 'verify' could not be confirmed. Check settings against our organisation's own environment before using them in decisions.",
+  "intro": {
+    "title": "How to use this tour",
+    "narration": "Press Next to build the picture one stage at a time.",
+    "what": "Each stage adds one part of the PI System to the map and explains it in the panel: what it is, key facts, names (current and legacy), sample data, limitations and governance.",
+    "facts": [
+      "Next or Right arrow or Space moves forward; Left arrow goes back; Home and End jump to the ends; F toggles fullscreen.",
+      "Use the jump list to revisit any stage, and the Show boxes to hide sections you do not need.",
+      "The last five stages gather everything in one place: limitations, governance, names, terms and one value's journey. Start there when you need a quick refresher.",
+      "Names, legacy names and limits were checked against public sources. The last stage lists the sources and the points still to verify.",
+      "On stages with a walkthrough (exception, compression, data stores, enterprise tier), use the step buttons under the chart, or Shift+Right and Shift+Left, to go one step at a time."
+    ]
+  },
+  "map": {
+    "width": 850,
+    "height": 500,
+    "node": {
+      "w": 108,
+      "h": 64
+    },
+    "zones": [
+      {
+        "id": "sources",
+        "name": "Sources",
+        "x": 8,
+        "w": 108
+      },
+      {
+        "id": "collection",
+        "name": "Collection",
+        "x": 141,
+        "w": 108
+      },
+      {
+        "id": "site",
+        "name": "Site PI Server",
+        "x": 281,
+        "w": 108
+      },
+      {
+        "id": "enterprise",
+        "name": "Enterprise and cloud",
+        "x": 421,
+        "w": 108
+      },
+      {
+        "id": "consumers",
+        "name": "Consumers",
+        "x": 561,
+        "w": 281
+      }
+    ],
+    "nodes": [
+      {
+        "id": "field",
+        "x": 62,
+        "y": 80,
+        "icon": "sensor",
+        "l1": "Instruments",
+        "l2": "and equipment"
+      },
+      {
+        "id": "ctrl",
+        "x": 62,
+        "y": 190,
+        "icon": "controller",
+        "l1": "Control systems",
+        "l2": "PLC · DCS · SCADA"
+      },
+      {
+        "id": "other",
+        "x": 62,
+        "y": 300,
+        "icon": "document",
+        "l1": "Other sources",
+        "l2": "databases · files"
+      },
+      {
+        "id": "eds",
+        "x": 195,
+        "y": 80,
+        "icon": "chip",
+        "l1": "Edge Data Store",
+        "l2": "local store",
+        "store": "cache"
+      },
+      {
+        "id": "coll",
+        "x": 195,
+        "y": 245,
+        "icon": "collector",
+        "l1": "Collector node",
+        "l2": "Interfaces · Adapters",
+        "store": "cache"
+      },
+      {
+        "id": "archive",
+        "x": 335,
+        "y": 140,
+        "icon": "archive",
+        "l1": "Data Archive",
+        "l2": "time series",
+        "store": "record"
+      },
+      {
+        "id": "af",
+        "x": 335,
+        "y": 250,
+        "icon": "context",
+        "l1": "AF Server",
+        "l2": "asset context",
+        "store": "record"
+      },
+      {
+        "id": "analysis",
+        "x": 335,
+        "y": 360,
+        "icon": "calculation",
+        "l1": "Analyses and",
+        "l2": "Notifications"
+      },
+      {
+        "id": "hub",
+        "type": "hub",
+        "x": 475,
+        "y": 195,
+        "l1": "Read access"
+      },
+      {
+        "id": "ent",
+        "x": 475,
+        "y": 330,
+        "icon": "enterprise",
+        "l1": "Enterprise",
+        "l2": "PI Server",
+        "store": "copy"
+      },
+      {
+        "id": "cloud",
+        "x": 475,
+        "y": 440,
+        "icon": "cloud",
+        "l1": "CONNECT",
+        "l2": "data services",
+        "store": "copy"
+      },
+      {
+        "id": "vision",
+        "x": 615,
+        "y": 70,
+        "icon": "consume",
+        "l1": "PI Vision",
+        "l2": "displays",
+        "store": "record"
+      },
+      {
+        "id": "datalink",
+        "x": 615,
+        "y": 160,
+        "icon": "grid",
+        "l1": "PI DataLink",
+        "l2": "Excel"
+      },
+      {
+        "id": "webapi",
+        "x": 615,
+        "y": 250,
+        "icon": "api",
+        "l1": "PI Web API",
+        "l2": "applications"
+      },
+      {
+        "id": "integrator",
+        "x": 615,
+        "y": 340,
+        "icon": "collector",
+        "l1": "PI Integrator",
+        "l2": "shaped datasets"
+      },
+      {
+        "id": "platform",
+        "x": 780,
+        "y": 295,
+        "icon": "layers",
+        "l1": "Data platform",
+        "l2": "BI · AI",
+        "store": "copy"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "field",
+        "to": "ctrl",
+        "label": "4–20 mA, HART, fieldbus signals"
+      },
+      {
+        "id": "e2",
+        "from": "ctrl",
+        "to": "coll",
+        "label": "OPC DA/UA, Modbus, vendor protocols",
+        "hop": "Hops 2–3 · gateway then collector · OPC DA/UA, Modbus; the collector polls or subscribes"
+      },
+      {
+        "id": "e3",
+        "from": "other",
+        "to": "coll",
+        "label": "Database, file and stream interfaces"
+      },
+      {
+        "id": "e4",
+        "from": "ctrl",
+        "to": "eds",
+        "label": "Adapters on the edge read local sources"
+      },
+      {
+        "id": "e5",
+        "from": "coll",
+        "to": "archive",
+        "label": "Exception-filtered, buffered values",
+        "hop": "Hop 4 · pushed outward over TCP 5450; the buffer holds data if this hop fails"
+      },
+      {
+        "id": "e6",
+        "from": "eds",
+        "to": "archive",
+        "label": "Store and forward from the edge"
+      },
+      {
+        "id": "e7",
+        "from": "archive",
+        "to": "af",
+        "type": "ref",
+        "label": "AF attributes reference PI points",
+        "hop": "Within the site PI tier · AF on SQL Server, TCP 5457 · if AF fails, collection continues"
+      },
+      {
+        "id": "e8",
+        "from": "archive",
+        "to": "analysis",
+        "type": "ref",
+        "label": "Analyses read inputs and write results"
+      },
+      {
+        "id": "e9",
+        "from": "analysis",
+        "to": "af",
+        "type": "ref",
+        "label": "Analyses and event frames sit on the asset model"
+      },
+      {
+        "id": "e10",
+        "from": "archive",
+        "to": "hub",
+        "label": "Time-series values"
+      },
+      {
+        "id": "e11",
+        "from": "af",
+        "to": "hub",
+        "label": "Asset context"
+      },
+      {
+        "id": "e12",
+        "from": "hub",
+        "to": "vision",
+        "label": "Recorded, interpolated and summary values",
+        "hop": "Hop 6 · HTTPS, Integrator, DataLink · a consumer outage does not affect collection"
+      },
+      {
+        "id": "e13",
+        "from": "hub",
+        "to": "datalink",
+        "label": "Recorded, interpolated and summary values",
+        "hop": "Hop 6 · HTTPS, Integrator, DataLink · a consumer outage does not affect collection"
+      },
+      {
+        "id": "e14",
+        "from": "hub",
+        "to": "webapi",
+        "label": "Recorded, interpolated and summary values",
+        "hop": "Hop 6 · HTTPS, Integrator, DataLink · a consumer outage does not affect collection"
+      },
+      {
+        "id": "e15",
+        "from": "hub",
+        "to": "integrator",
+        "label": "Recorded, interpolated and summary values",
+        "hop": "Hop 6 · HTTPS, Integrator, DataLink · a consumer outage does not affect collection"
+      },
+      {
+        "id": "e16",
+        "from": "integrator",
+        "to": "platform",
+        "label": "Shaped datasets for BI and AI"
+      },
+      {
+        "id": "e17",
+        "from": "webapi",
+        "to": "platform",
+        "label": "Applications and platform pull through the API"
+      },
+      {
+        "id": "e18",
+        "from": "archive",
+        "to": "ent",
+        "label": "PI to PI replication, outward only",
+        "hop": "Hop 5 · replication through the DMZ, started from the plant side, outward"
+      },
+      {
+        "id": "e19",
+        "from": "af",
+        "to": "ent",
+        "label": "Asset model kept in step"
+      },
+      {
+        "id": "e20",
+        "from": "ent",
+        "to": "cloud",
+        "label": "Optional PI to CONNECT agent into CONNECT data services"
+      },
+      {
+        "id": "e21",
+        "from": "ent",
+        "to": "hub",
+        "label": "Business users read the enterprise copy"
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "overview",
+      "title": "The big picture",
+      "narration": "The PI System collects, stores, contextualises, calculates and shares time-series data. Five zones, left to right.",
+      "nodes": [],
+      "edges": [],
+      "remember": "Collect → Store → Add context → Calculate → Share (then Replicate to the enterprise).",
+      "what": "A time-series data infrastructure for operations. It captures timestamped measurements from equipment, keeps them efficiently for years, adds asset meaning and shares them with people, applications and the data platform.",
+      "facts": [
+        "The unit of data is a timestamped value with a quality flag, stored against a PI point (also called a tag).",
+        "Two stores matter: the Data Archive keeps the time series; Asset Framework (AF) keeps the asset model.",
+        "Everything else collects data into those stores or reads data out of them.",
+        "Timestamps are stored in UTC; displays convert to local time.",
+        "The Data Archive and AF Server run on Windows Server. AVEVA Adapters (and Edge Data Store) also run on Linux."
+      ],
+      "names": [
+        {
+          "name": "AVEVA PI System",
+          "note": "the whole platform"
+        },
+        {
+          "name": "AVEVA PI Server",
+          "note": "Data Archive, AF Server, Analysis Service and Notifications in one install kit; once meant the Data Archive only"
+        },
+        {
+          "name": "AVEVA PI Data Infrastructure",
+          "note": "the PI System offered together with CONNECT data services as a hybrid solution"
+        }
+      ],
+      "limits": [
+        "Not a control system: PI observes the process, it does not run it.",
+        "Not a general-purpose relational or analytics database; it is optimised for time-series reads."
+      ],
+      "governance": [
+        "Treat PI as the operational record of the process: agree who owns each data set and who may change it."
+      ],
+      "terms": [
+        {
+          "t": "PI point (tag)",
+          "m": "One measured or calculated signal, stored as timestamped values."
+        },
+        {
+          "t": "Quality",
+          "m": "PI marks values with flags (questionable, substituted, annotated) and uses system digital states such as I/O Timeout or Bad Input for missing or failed values."
+        },
+        {
+          "t": "UTC timestamp",
+          "m": "PI stores time in UTC so values from different sites line up."
+        },
+        {
+          "t": "Hop",
+          "m": "One leg of the data's journey from one component to the next, with its own protocol, direction, latency and failure behaviour."
+        }
+      ]
+    },
+    {
+      "id": "field",
+      "title": "Field and equipment",
+      "narration": "Everything starts with a measurement in the field.",
+      "nodes": [
+        "field"
+      ],
+      "edges": [],
+      "remember": "Data quality starts here: garbage in, history out.",
+      "what": "Sensors, transmitters, analysers and meters turn physical quantities into signals. Mobile equipment reports position and payload over wireless networks.",
+      "facts": [
+        "Classic analogue signal: 4–20 mA. HART adds digital data on the same wiring; fieldbus is fully digital.",
+        "These devices usually feed a control system, not PI directly.",
+        "Mobile equipment data often arrives through a fleet management system rather than the DCS."
+      ],
+      "sample": "A pressure transmitter on pump P-101 discharge reads 4.237 bar at 10:00:01.250.",
+      "limits": [
+        "PI cannot improve a bad measurement: drift, a failed sensor or poor calibration is stored faithfully."
+      ],
+      "governance": [
+        "Agree who owns calibration and how sensor faults are flagged in the data."
+      ]
+    },
+    {
+      "id": "control",
+      "title": "Control systems and gateways",
+      "narration": "Control systems run the plant and hold the latest values, but keep little history.",
+      "nodes": [
+        "ctrl"
+      ],
+      "edges": [
+        "e1"
+      ],
+      "remember": "PI only reads from here. Control keeps current values, PI keeps history.",
+      "what": "PLCs and DCS run the process; SCADA supervises it. OPC servers and other gateways expose their current values to other systems.",
+      "facts": [
+        "Control loops run in milliseconds to seconds; current values are exposed, long-term history is not kept.",
+        "OPC DA (Classic) depends on Microsoft COM/DCOM. OPC UA does not: it uses TCP and X.509 certificates, with a simple firewall profile.",
+        "Microsoft's DCOM hardening (enforced by default on supported Windows versions from 2023) broke many OPC Classic connections; the OPC Foundation advises moving to OPC UA, or keeping COM local to one machine.",
+        "Modbus and vendor protocols are also common.",
+        "This is the most protected part of the plant network."
+      ],
+      "sample": "DCS tag PI101_PV = 4.237 bar, quality Good, exposed by the OPC UA server.",
+      "names": [
+        {
+          "name": "OPC UA",
+          "note": "current standard"
+        },
+        {
+          "name": "OPC DA (OPC Classic)",
+          "note": "older COM/DCOM-based standard, still common"
+        }
+      ],
+      "limits": [
+        "OPC DA across a network is hard to secure and troubleshoot, and DCOM hardening can break it after Windows updates.",
+        "A gateway that wraps OPC Classic as OPC UA keeps DCOM local, but adds another component to run.",
+        "The vendor and protocol at each site decide which collector you need."
+      ],
+      "governance": [
+        "PI only reads from the control network. Any write-back to control must stay advisory and be explicitly approved."
+      ],
+      "terms": [
+        {
+          "t": "PLC / DCS / SCADA",
+          "m": "Control hardware and supervisory systems that run and watch the process."
+        },
+        {
+          "t": "OPC",
+          "m": "A standard way for software to read plant data; DA is older, UA is current."
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "title": "Other data sources",
+      "narration": "Not everything comes from control systems: databases, files and business systems also feed PI.",
+      "nodes": [
+        "other"
+      ],
+      "edges": [],
+      "remember": "Different source, same destination: everything ends up as tagged, timestamped values.",
+      "what": "Laboratory, maintenance, fleet and other systems hold data that is useful next to process values. Dedicated collectors read databases, files and streams.",
+      "facts": [
+        "Typical sources: relational databases, files, other historians, lab systems, fleet management.",
+        "Data is often lower frequency or batch, and carries its own time zone and clock.",
+        "The PI Interface for Relational Database reads any database with an ODBC driver (for example Oracle or SQL Server); it supports history recovery, exception reporting and interface failover."
+      ],
+      "names": [
+        {
+          "name": "PI Interface for Relational Database (RDBMS via ODBC)",
+          "note": "official name of the database interface"
+        }
+      ],
+      "limits": [
+        "Timestamps, time zones and late-arriving data need care; a wrong clock creates wrong history."
+      ],
+      "governance": [
+        "Name a system of record for each data set so the same fact is not collected twice with different values."
+      ],
+      "tbc": "File and stream loading: To be covered (the file loader product name could not be confirmed)."
+    },
+    {
+      "id": "collection",
+      "title": "Collection",
+      "narration": "A collector reads the values, drops the noise and delivers the rest safely.",
+      "nodes": [
+        "coll"
+      ],
+      "edges": [
+        "e2",
+        "e3"
+      ],
+      "remember": "The collector sits next to the source and pushes outward to the server.",
+      "what": "A collector node runs interface software close to the source. It reads values, applies an exception filter and sends them to the Data Archive through a disk buffer.",
+      "facts": [
+        "Three families of collector software coexist: Interfaces, Connectors and Adapters.",
+        "Interfaces are built on the UniInt framework and support features such as exception reporting, history recovery and failover.",
+        "AVEVA Adapters run on Windows and Linux (including containers) and send data to PI Server or Edge Data Store.",
+        "Each point has a scan class (how often the source is polled) and exception settings.",
+        "Connections flow outward from the plant to the server."
+      ],
+      "names": [
+        {
+          "name": "AVEVA Adapters",
+          "legacy": "PI Adapters"
+        },
+        {
+          "name": "PI Connectors",
+          "note": "still in use; no retirement found in the sources checked; verify lifecycle"
+        },
+        {
+          "name": "PI Interfaces",
+          "note": "the original, classic family"
+        }
+      ],
+      "limits": [
+        "A single collector is a single point of failure unless failover is configured.",
+        "Failover support differs by product: a community report says a 2.x PI Connector for OPC UA lacked connector-level failover. Verify for your version.",
+        "Collector placement matters: the further from the source, the more latency and failure points."
+      ],
+      "governance": [
+        "Record for every collector: source, owner, scan classes and tag naming rule.",
+        "Standardise point source names so every tag traces back to its collector."
+      ],
+      "terms": [
+        {
+          "t": "Scan class",
+          "m": "How often an interface polls the source for a group of points."
+        },
+        {
+          "t": "Point source",
+          "m": "A label on each tag saying which interface owns it."
+        }
+      ]
+    },
+    {
+      "id": "exception",
+      "title": "Exception and buffering",
+      "narration": "Two safety nets: filter out noise, and never lose data when the network drops.",
+      "nodes": [
+        "coll"
+      ],
+      "edges": [
+        "e5"
+      ],
+      "remember": "Exception = filter at the collector. Buffer = safety net.",
+      "what": "The exception test sends a value only when it differs from the last sent value by more than the exception deviation (or the maximum time has passed). Buffering queues values on disk and forwards them to every Data Archive server.",
+      "facts": [
+        "The previous value is also sent when a new value passes, to keep the slope of the signal.",
+        "The buffer (PI Buffer Subsystem) holds data during network or server outages and forwards it when the link returns.",
+        "Exception settings are per point: deviation (ExcDev, or ExcDevPercent of span), minimum time and maximum time (ExcMax).",
+        "Commonly cited defaults: ExcDevPercent 0.1 %, ExcMax 600 s. Verify for your version.",
+        "Rule of thumb: ExcDev about half of CompDev."
+      ],
+      "sample": "4.237 differs from the last sent value 4.105 by 0.132, more than the exception deviation of 0.1, so it is sent and buffered until the archive confirms receipt.",
+      "chart": {
+        "kind": "exception",
+        "dev": 0.1,
+        "vmin": 3.85,
+        "vmax": 4.35,
+        "tmax": 5,
+        "points": [
+          {
+            "label": "A",
+            "t": 0,
+            "v": 4.0
+          },
+          {
+            "label": "B",
+            "t": 1,
+            "v": 4.03
+          },
+          {
+            "label": "C",
+            "t": 2,
+            "v": 4.06
+          },
+          {
+            "label": "D",
+            "t": 3,
+            "v": 4.08
+          },
+          {
+            "label": "E",
+            "t": 4,
+            "v": 4.25
+          }
+        ],
+        "final": "5 readings, 3 sent (A, D, E). Sending D shows where the rise really began.",
+        "note": "Illustrative values for learning: exception deviation 0.1 bar. The sample text above uses its own numbers.",
+        "buffer": {
+          "caption": "Queued on disk and forwarded to every Data Archive server; held during network outages. Buffering prevents data loss; exception deliberately discards data."
+        }
+      },
+      "limits": [
+        "The buffer is finite: size it for the longest outage you must survive.",
+        "An exception deviation set too wide hides real changes before they reach PI."
+      ],
+      "governance": [
+        "Set the exception deviation from the instrument's real noise, per tag class, and document it.",
+        "Start from vendor defaults and change settings only with a recorded reason."
+      ],
+      "terms": [
+        {
+          "t": "Exception deviation",
+          "m": "How far a value must move from the last sent value to be sent again."
+        },
+        {
+          "t": "Buffer",
+          "m": "Disk queue on the collector that holds data while the server is unreachable."
+        }
+      ]
+    },
+    {
+      "id": "edge",
+      "title": "Edge Data Store",
+      "narration": "At remote or small sites a lightweight edge store can collect and hold data locally.",
+      "nodes": [
+        "eds"
+      ],
+      "edges": [
+        "e4",
+        "e6"
+      ],
+      "remember": "Edge = small, local, store-and-forward.",
+      "what": "Edge Data Store is a small-footprint service that runs adapters and keeps recent data on the device, then forwards it to a Data Archive or the cloud.",
+      "facts": [
+        "Runs on Windows or Linux devices.",
+        "Stores data locally, then sends it on through its egress engine to a PI Server or to CONNECT data services.",
+        "Sending to a PI Server needs a PI Web API endpoint with OMF ingress enabled; the certificate must be trusted by the edge device."
+      ],
+      "names": [
+        {
+          "name": "Edge Data Store (EDS)"
+        }
+      ],
+      "limits": [
+        "It is a collection and forwarding component, not a replacement for a Data Archive.",
+        "Egress needs a working certificate and endpoint setup; after a PI Web API upgrade the edge service may need a restart."
+      ],
+      "governance": [
+        "Decide which sites use edge-only collection and how they are monitored, since nobody is on site."
+      ]
+    },
+    {
+      "id": "archive",
+      "title": "PI Data Archive",
+      "narration": "The Data Archive keeps the current value of every tag and stores history for years.",
+      "nodes": [
+        "archive"
+      ],
+      "edges": [
+        "e5",
+        "e6"
+      ],
+      "remember": "Snapshot = now. Archive files = history.",
+      "what": "The server that stores time series. It holds the point database, the snapshot (latest value per point) and the archive files (history).",
+      "facts": [
+        "Snapshot subsystem: the current value of each point.",
+        "Archive subsystem: history in archive files; new values reach them through the event queue, a write cache.",
+        "Late or backfilled values skip compression.",
+        "Reads return recorded, interpolated, plot-optimised or summary values (average, minimum, maximum, total).",
+        "Each point has a type (floating point, integer, digital, string), engineering units and a step flag: step holds the value until the next one, otherwise values are interpolated.",
+        "Runs on Windows Server (64-bit)."
+      ],
+      "sample": "The snapshot becomes 4.237 bar. The previous value 4.105 is kept because it is needed to redraw the signal within the compression deviation.",
+      "names": [
+        {
+          "name": "AVEVA PI Server – Data Archive",
+          "legacy": "PI Data Archive; PI Server (archive only)"
+        }
+      ],
+      "limits": [
+        "Sizing depends on tag count, update rate and retention; plan hardware for growth.",
+        "Heavy ad hoc queries on the live server slow collection and every other user."
+      ],
+      "governance": [
+        "Control who can create or change points and who can edit history.",
+        "Use a tag naming convention and keep a point inventory.",
+        "Define retention per data class."
+      ],
+      "terms": [
+        {
+          "t": "Snapshot",
+          "m": "The latest value of a point, held in memory."
+        },
+        {
+          "t": "Event queue",
+          "m": "Write cache between the snapshot and the archive files."
+        },
+        {
+          "t": "Step",
+          "m": "Point flag: hold the value until the next one instead of drawing a line."
+        }
+      ]
+    },
+    {
+      "id": "compression",
+      "title": "Compression",
+      "narration": "Compression keeps only the points needed to redraw the signal within a tolerance. It is lossy and irreversible.",
+      "nodes": [
+        "archive"
+      ],
+      "edges": [
+        "e5"
+      ],
+      "remember": "Exception = collector filter. Compression = archive filter. Both are lossy.",
+      "what": "When a new value arrives, the previous snapshot is tested. Two door slopes run from the last archived value to each snapshot, plus and minus the compression deviation. If the new value's slope from the archived value falls inside the doors, the previous snapshot is dropped; if outside, it is archived and new doors start from it.",
+      "facts": [
+        "The previous snapshot is the value tested when a new one arrives.",
+        "Compression deviation (CompDev, or CompDevPercent of span) is the allowed error band; compression maximum time (CompMax) forces a value to be kept after a quiet period. One source recommends at most one work shift (8 hours).",
+        "CompMin is normally 0 for points fed by exception-reporting interfaces.",
+        "Commonly cited defaults: CompDevPercent 0.2 %, CompMax 28 800 s. Verify for your version.",
+        "Step points do not use swinging door compression, and deviations are ignored for digital and string points.",
+        "Dropped values are gone for good; this is the main fidelity trade-off."
+      ],
+      "chart": {
+        "kind": "compression",
+        "dev": 0.1,
+        "vmin": 3.95,
+        "vmax": 4.45,
+        "tmax": 6,
+        "points": [
+          {
+            "label": "A",
+            "t": 0,
+            "v": 4.0
+          },
+          {
+            "label": "B",
+            "t": 1,
+            "v": 4.1
+          },
+          {
+            "label": "C",
+            "t": 2,
+            "v": 4.2
+          },
+          {
+            "label": "D",
+            "t": 3,
+            "v": 4.3
+          },
+          {
+            "label": "E",
+            "t": 4,
+            "v": 4.3
+          },
+          {
+            "label": "F",
+            "t": 5,
+            "v": 4.3
+          }
+        ],
+        "final": "6 values, 2 archived (0 s and 4 s); 5 s is the snapshot. History reads 4.225 at 3 s where reality was 4.30: an error of 0.075, within CompDev.",
+        "note": "Illustrative values for learning: compression deviation 0.1 bar; slopes in bar per second."
+      },
+      "limits": [
+        "Lossy and irreversible: you cannot recover discarded noise or fast transients later.",
+        "A deviation set too wide flattens real events; too narrow wastes storage."
+      ],
+      "governance": [
+        "Fidelity is a governance decision: set compression per tag class with the process owner, record the reason and review it.",
+        "Start from vendor defaults; derive deviations from instrument accuracy and span, not from storage savings."
+      ],
+      "terms": [
+        {
+          "t": "Compression deviation",
+          "m": "Allowed error band when redrawing the signal from kept points."
+        },
+        {
+          "t": "Swinging door",
+          "m": "The algorithm that decides which points to keep."
+        },
+        {
+          "t": "CompDevPercent",
+          "m": "Compression deviation expressed as a percentage of the point's span (its zero-to-span range)."
+        }
+      ],
+      "preview": "Preview: deepened in B3"
+    },
+    {
+      "id": "af",
+      "title": "Asset Framework (context)",
+      "narration": "Raw tags get business meaning: which asset, which attribute, which unit.",
+      "nodes": [
+        "af"
+      ],
+      "edges": [
+        "e7"
+      ],
+      "remember": "AF stores structure; the Data Archive stores values.",
+      "what": "AF models the plant as a hierarchy of assets. Each asset has attributes that point to PI points, so people find “Pump P-101 discharge pressure” instead of a tag name.",
+      "facts": [
+        "Elements represent assets and are built from templates, so 200 pumps share one definition.",
+        "Attributes can be fixed values, formulas or references to PI points and tables.",
+        "Event Frames record time-bounded events such as downtime, batches or trips.",
+        "AF stores structure and configuration, not the time series; the values stay in the Data Archive.",
+        "The AF database sits in SQL Server; engineers edit it with PI System Explorer."
+      ],
+      "sample": "Tag PI101_PV becomes Site A > Plant 2 > Pump P-101 > Discharge pressure (bar).",
+      "names": [
+        {
+          "name": "PI Asset Framework (AF)",
+          "legacy": "PI AF"
+        },
+        {
+          "name": "PI System Explorer",
+          "note": "the AF editing tool"
+        }
+      ],
+      "limits": [
+        "A poorly designed hierarchy or template set is costly to change once displays and analyses depend on it.",
+        "AF is the single point of definition: an AF outage affects every context-based client.",
+        "AF collectives are no longer recommended by the vendor; use a load-balanced AF service and SQL Server Always On instead."
+      ],
+      "governance": [
+        "Standard templates across sites.",
+        "Align the hierarchy with the asset master in the maintenance system.",
+        "Change control for template edits: one change reaches every element built from it."
+      ],
+      "terms": [
+        {
+          "t": "Element",
+          "m": "One asset in the AF hierarchy, such as a pump."
+        },
+        {
+          "t": "Template",
+          "m": "The shared definition that elements are built from."
+        },
+        {
+          "t": "Attribute",
+          "m": "A property of an element, often linked to a PI point."
+        },
+        {
+          "t": "Event Frame",
+          "m": "A record of something that happened between a start and an end time."
+        }
+      ]
+    },
+    {
+      "id": "analysis",
+      "title": "Calculation and notification",
+      "narration": "PI derives KPIs and detects conditions automatically.",
+      "nodes": [
+        "analysis"
+      ],
+      "edges": [
+        "e8",
+        "e9"
+      ],
+      "remember": "Analyses turn values into KPIs and events; Notifications tell people.",
+      "what": "Analyses calculate values and detect conditions on AF assets. Notifications alert people when conditions occur.",
+      "facts": [
+        "Analyses run when an input changes or on a schedule.",
+        "Types include expressions, roll-ups across assets and event frame generation.",
+        "Results are written to PI points and Event Frames."
+      ],
+      "sample": "If discharge pressure stays below 3.0 bar for 5 minutes, a “Low pressure” event frame starts and the shift engineer is notified.",
+      "names": [
+        {
+          "name": "PI Asset Analytics",
+          "note": "AF analyses, run by the PI Analysis Service; expressions use Performance Equation syntax"
+        },
+        {
+          "name": "PI Notifications"
+        },
+        {
+          "name": "PI ACE (Advanced Computing Engine)",
+          "note": "legacy; retirement announced in 2022 with Asset Analytics as successor; verify the current lifecycle date"
+        }
+      ],
+      "limits": [
+        "Meant for light business rules, not heavy statistics or machine learning.",
+        "A very large number of analyses, or a big backfill, can overload the analysis service."
+      ],
+      "governance": [
+        "Decide where business logic lives (PI, MES or the data platform) and who owns it.",
+        "Build analyses on templates so they are reviewed once and reused."
+      ],
+      "terms": [
+        {
+          "t": "Analysis",
+          "m": "A calculation or condition attached to an AF element or template."
+        },
+        {
+          "t": "Roll-up",
+          "m": "A calculation that combines values from many assets, such as a plant total."
+        }
+      ]
+    },
+    {
+      "id": "stores",
+      "title": "Where data is stored",
+      "narration": "Where each piece of data lives, and what losing it would cost.",
+      "nodes": [],
+      "edges": [],
+      "reveal": [
+        "coll",
+        "eds",
+        "archive",
+        "af",
+        "vision",
+        "ent",
+        "cloud",
+        "platform"
+      ],
+      "preview": "Preview: backup and recovery deepened in D2",
+      "remember": "Records at the site, caches on the hops, copies beyond.",
+      "what": "PI keeps data in at least eight places. Each is a system of record (authoritative), a cache (temporary) or a copy (rebuildable).",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: data stores",
+        "steps": [
+          {
+            "title": "Collector",
+            "nodes": [
+              "coll"
+            ],
+            "caption": "Buffer queue files hold values not yet delivered. Cache: if the node dies during an outage, those values are lost. Also holds collector configuration."
+          },
+          {
+            "title": "Edge Data Store",
+            "nodes": [
+              "eds"
+            ],
+            "caption": "Local values on an edge device before sending upstream. Cache."
+          },
+          {
+            "title": "Data Archive",
+            "nodes": [
+              "archive"
+            ],
+            "caption": "Snapshot and event queue are caches for current values and pending writes. Archive files hold all history: the system of record and the crown jewels. The point database and security tables hold tag definitions, compression settings, identities and mappings."
+          },
+          {
+            "title": "AF Server",
+            "nodes": [
+              "af"
+            ],
+            "caption": "The AF SQL database holds asset models, templates, analysis and notification definitions, and Event Frames. System of record: lose it and you lose all context and event history."
+          },
+          {
+            "title": "PI Vision",
+            "nodes": [
+              "vision"
+            ],
+            "caption": "Its own SQL database holds displays. Record for displays: lose it and every display is rebuilt by hand. PI Web API keeps its configuration in AF, so it holds almost nothing itself and scales out easily."
+          },
+          {
+            "title": "Enterprise PI, CONNECT, data platform",
+            "nodes": [
+              "ent",
+              "cloud",
+              "platform"
+            ],
+            "caption": "Copies, rebuilt from the sites, but only as far back as the site history goes."
+          },
+          {
+            "title": "Backups",
+            "nodes": [
+              "archive",
+              "af",
+              "vision"
+            ],
+            "noRole": true,
+            "caption": "Back up with at least two methods: PI Data Archive backup for archive files and configuration, SQL Server backups for the AF and PI Vision databases."
+          }
+        ]
+      },
+      "facts": [
+        "Event Frames live in the AF SQL database, not the archive.",
+        "A collective replicates: corruption and deletions spread to all members; a backup is a point-in-time copy.",
+        "The enterprise PI is a copy, possibly a subset or shorter retention; not a tested recovery source.",
+        "Buffers are sized for outages, not for keeping data."
+      ],
+      "terms": [
+        {
+          "t": "System of record",
+          "m": "The authoritative copy of a type of data."
+        },
+        {
+          "t": "Cache",
+          "m": "Temporary storage that empties or rebuilds itself."
+        },
+        {
+          "t": "Copy",
+          "m": "A duplicate that can be rebuilt from the record."
+        }
+      ]
+    },
+    {
+      "id": "serve",
+      "title": "Serving and consuming",
+      "narration": "People, applications, the data platform and AI read the data.",
+      "nodes": [
+        "hub",
+        "vision",
+        "datalink",
+        "webapi",
+        "integrator",
+        "platform"
+      ],
+      "edges": [
+        "e10",
+        "e11",
+        "e12",
+        "e13",
+        "e14",
+        "e15",
+        "e16",
+        "e17"
+      ],
+      "remember": "Clients read through AF and the Data Archive; each tool suits a different audience.",
+      "what": "Operations use displays, engineers use Excel, applications use APIs, and the data platform uses shaped datasets.",
+      "facts": [
+        "PI Vision: browser displays and trends for operations.",
+        "PI DataLink: Excel add-in for engineers.",
+        "PI Web API: REST interface for applications and integration; it also receives OMF data (used by Edge Data Store).",
+        "PI Integrator for Business Analytics: publishes shaped, tabular datasets to SQL, data lakes and BI tools.",
+        "Also: PI SQL Client (RTQP) for SQL access, and AF SDK for .NET applications."
+      ],
+      "sample": "A PI Vision trend shows the pressure; hourly averages flow to the data platform; an anomaly model flags pump degradation.",
+      "names": [
+        {
+          "name": "PI Vision",
+          "legacy": "PI Coresight (renamed in 2017)"
+        },
+        {
+          "name": "PI ProcessBook",
+          "note": "retired; partner sources give support end as December 2024"
+        },
+        {
+          "name": "PI SQL Client (RTQP)",
+          "note": "newer SQL access, faster than PI OLEDB Enterprise; the OLE DB route is older; verify lifecycle"
+        },
+        {
+          "name": "PI DataLink"
+        },
+        {
+          "name": "PI Web API"
+        },
+        {
+          "name": "PI Integrator for Business Analytics"
+        },
+        {
+          "name": "AF SDK"
+        }
+      ],
+      "limits": [
+        "A few heavy queries (many tags, long ranges, fine intervals) can slow PI for everyone.",
+        "PI shows only what was collected: gaps and poor quality are visible, not repaired.",
+        "Older PI Integrator 'PI Views' were deprecated for a security vulnerability (training material, 2020 release). Verify before using them."
+      ],
+      "governance": [
+        "Protect PI from heavy queries: let analytics read from the data platform, not the live server.",
+        "Govern consumption: ownership, quality, access and data contracts for each data product.",
+        "Give consumers read-only access, by role."
+      ],
+      "tbc": "Data virtualisation of PI data (querying it in place without copying): To be covered in phase 2.",
+      "terms": [
+        {
+          "t": "Recorded value",
+          "m": "A value exactly as stored."
+        },
+        {
+          "t": "Interpolated value",
+          "m": "A calculated value at an exact time between two stored values."
+        },
+        {
+          "t": "Summary",
+          "m": "Average, minimum, maximum or total over a time range."
+        }
+      ]
+    },
+    {
+      "id": "enterprise",
+      "title": "Enterprise tier and cloud",
+      "narration": "Site data is copied to an enterprise tier, so business users never reach into the plant network.",
+      "nodes": [
+        "ent",
+        "cloud"
+      ],
+      "edges": [
+        "e18",
+        "e19",
+        "e20",
+        "e21"
+      ],
+      "remember": "Sites push outward; business users read the copy.",
+      "what": "Each site's Data Archive replicates to an enterprise PI server, optionally on to the cloud, so business users read a copy.",
+      "facts": [
+        "Replication is outward only, through the industrial DMZ.",
+        "Asset models are kept in step with the sites.",
+        "Latency is typically seconds; the copy is not the source for control.",
+        "PI Server 2023 added the PI to Data Hub (now PI to CONNECT) agent as an installable feature in the server kit.",
+        "A reverse agent, CONNECT to PI, can write cloud streams back into PI points."
+      ],
+      "sample": "The enterprise PI server receives pump P-101 discharge pressure from every site within seconds.",
+      "names": [
+        {
+          "name": "PI to PI interface"
+        },
+        {
+          "name": "PI to CONNECT agent",
+          "legacy": "PI to Data Hub agent"
+        },
+        {
+          "name": "CONNECT data services",
+          "legacy": "AVEVA Data Hub"
+        }
+      ],
+      "limits": [
+        "Replication adds lag and another store to secure, back up and reconcile.",
+        "If a link fails, values wait in the source buffer; the copy can fall behind or have gaps."
+      ],
+      "governance": [
+        "Decide which points and assets are replicated and who owns each copy.",
+        "Check data residency rules before any cloud transfer."
+      ],
+      "terms": [
+        {
+          "t": "DMZ",
+          "m": "Demilitarised zone, a buffer network between plant and corporate networks; no traffic passes straight through."
+        }
+      ],
+      "chart": {
+        "kind": "zones",
+        "steps": [
+          "Site PI sends data outward to the DMZ. The connection starts on the plant side.",
+          "Enterprise PI receives the data from the DMZ side.",
+          "The engineer's laptop talks only to enterprise PI.",
+          "A direct path from the laptop to site PI is crossed out: if the laptop is infected, the attack stops at the DMZ."
+        ],
+        "firewall": {
+          "text": "Firewall: software rules; two-way traffic where rules allow."
+        },
+        "diode": {
+          "text": "Data diode: hardware with no return path; an agent on each side copies data across.",
+          "result": "With a diode: no write-back, no direct IT queries to site PI, and any IT query must use a copy on the IT side, which matters for data virtualisation."
+        }
+      }
+    },
+    {
+      "id": "security",
+      "title": "Security and network zones",
+      "narration": "PI sits in layers of the network. Connections flow outward and access follows least privilege.",
+      "nodes": [
+        "ctrl",
+        "coll",
+        "ent"
+      ],
+      "edges": [
+        "e2",
+        "e18"
+      ],
+      "remember": "Outward-only flows; business access goes to the enterprise copy.",
+      "what": "The plant network stays protected: PI collects from it but needs no inbound paths into it. Business access goes to the enterprise copy.",
+      "facts": [
+        "Zones, inside to outside: control network, site PI server, industrial DMZ, enterprise. IEC 62443 calls these zones joined by conduits, where firewalls or data diodes enforce policy.",
+        "The industrial DMZ is the only authorised path between operations and corporate IT; one-way needs can use data diodes.",
+        "Recommended: Windows Integrated Security, with Windows groups mapped to PI identities through PI mappings; access rules sit on points and AF objects.",
+        "PI trusts (fixed connection credentials) are legacy and weaker; they and explicit logins are disabled by default in newer client software.",
+        "PI Server 2023 added optional OpenID Connect (claims-based) sign-in and TLS certificates; Windows Integrated Security still works.",
+        "Business-facing web tools are commonly served from the enterprise tier or DMZ."
+      ],
+      "names": [
+        {
+          "name": "PI identities and PI mappings",
+          "note": "recommended model"
+        },
+        {
+          "name": "PI trusts",
+          "note": "legacy, weaker method"
+        },
+        {
+          "name": "OpenID Connect / TLS certificates",
+          "note": "optional from PI Server 2023"
+        }
+      ],
+      "limits": [
+        "Weak legacy settings (trusts, shared accounts) tend to survive migrations unless someone removes them."
+      ],
+      "governance": [
+        "Least privilege: one Windows group per access level (for example read-only, administrators), each mapped to its own PI identity.",
+        "Design zones and conduits to IEC 62443; keep the DMZ as the only OT-to-IT path.",
+        "Separate development, test and production.",
+        "Apply vendor security advisories (public advisories exist for Data Archive versions); remove legacy trusts."
+      ],
+      "terms": [
+        {
+          "t": "PI identity",
+          "m": "A named set of permissions that Windows accounts map to."
+        },
+        {
+          "t": "Least privilege",
+          "m": "Give each user or service only the access it needs."
+        },
+        {
+          "t": "IEC 62443",
+          "m": "The international standard series for industrial control system security, including zones and conduits."
+        }
+      ],
+      "preview": "Preview: deepened in D4"
+    },
+    {
+      "id": "availability",
+      "title": "Availability and disaster recovery",
+      "narration": "Plan for failure at each layer: collector, buffer, archive and AF database.",
+      "nodes": [
+        "coll",
+        "archive",
+        "af"
+      ],
+      "edges": [
+        "e5",
+        "e7"
+      ],
+      "remember": "Collective = availability. Backup = recovery. Test both.",
+      "what": "Each layer has its own protection, and none replaces tested backups.",
+      "facts": [
+        "Collectors: UniInt interface failover uses a backup instance coordinated through PI points and a shared file; it covers loss of the data source or of the Data Archive connection. The backup must stay connected to the source.",
+        "Data Archive: a collective is one primary plus secondaries; secondaries replicate points, configuration and security; clients spread connections across members and fail over.",
+        "Keep collective members on the same version (community guidance).",
+        "AF: a load-balanced AF application service with the AF SQL database in a SQL Server Always On availability group. AF collectives are no longer recommended.",
+        "Back up with the PI backup subsystem (pibackup) and copy the result off the server. Archive files alone are not enough: the non-archive files hold point configuration."
+      ],
+      "names": [
+        {
+          "name": "PI collective"
+        },
+        {
+          "name": "Interface failover"
+        }
+      ],
+      "limits": [
+        "A collective is high availability, not a backup: it replicates mistakes and deletions too.",
+        "Buffers cover only outages shorter than their size allows.",
+        "Interface failover support depends on the interface; check each one."
+      ],
+      "governance": [
+        "Define recovery point and recovery time targets per site.",
+        "Check daily that last night's backup ran and that disk space remains; take a full backup before significant changes.",
+        "Test restores, not just backups; for the AF SQL database also run a consistency check on the restored copy.",
+        "Monitor collectors, buffers and archive health."
+      ],
+      "terms": [
+        {
+          "t": "RPO / RTO",
+          "m": "How much data you can lose, and how long recovery may take."
+        }
+      ],
+      "preview": "Preview: deepened in D2"
+    },
+    {
+      "id": "all-limits",
+      "title": "Summary: limitations",
+      "kind": "collect",
+      "collect": "limits",
+      "narration": "Every limitation from the tour, in one place.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "PI is faithful, not smart: it stores what it is given, filtered by your settings."
+    },
+    {
+      "id": "all-governance",
+      "title": "Summary: governance principles",
+      "kind": "collect",
+      "collect": "governance",
+      "narration": "Every governance principle from the tour, in one place.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "Own it, name it, template it, tune it, protect it, test it."
+    },
+    {
+      "id": "all-names",
+      "title": "Summary: names, current and legacy",
+      "kind": "collect",
+      "collect": "names",
+      "narration": "Current product names, with the legacy names you will still meet.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "When a document uses an old name, find its current name here."
+    },
+    {
+      "id": "all-terms",
+      "title": "Summary: key terms",
+      "kind": "collect",
+      "collect": "terms",
+      "narration": "The vocabulary to keep.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "Tag, snapshot, archive, exception, compression, element, template, event frame."
+    },
+    {
+      "id": "recap",
+      "title": "Recap: one value's journey",
+      "kind": "recap",
+      "narration": "Follow one pressure reading from the field to the data platform.",
+      "nodes": "all",
+      "edges": [
+        "e1",
+        "e2",
+        "e5",
+        "e7",
+        "e10",
+        "e12",
+        "e18"
+      ],
+      "remember": "Collect → Filter (exception) → Buffer → Store → Compress → Add context → Calculate → Replicate → Serve.",
+      "what": "Five things to remember:",
+      "facts": [
+        "PI stores timestamped values per point; AF gives them meaning.",
+        "Two lossy filters sit on the way in: exception and compression.",
+        "Buffers and collectives give availability; backups give recovery.",
+        "Connections flow outward; business users read the enterprise copy.",
+        "Governance rests on naming, templates, fidelity settings, ownership and access."
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "Sources and open checks",
+      "narration": "Where the facts came from, and what still needs checking.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "Treat vendor documentation for your installed version as the final authority.",
+      "what": "Checked on 16 October 2026 using public sources. Several were secondary copies or older than the current release.",
+      "facts": [
+        "AVEVA: Data Hub becoming CONNECT data services (aveva.com blog); PI Data Infrastructure and PI System service descriptions and software schedules (aveva.com, v1.4 to v1.5).",
+        "AVEVA: why PI ProcessBook is retiring (aveva.com blog); UniInt failover overview (docs.aveva.com).",
+        "AVEVA and training material: PI Server 2023 release notes, PI Server and Data Archive performance and security presentations (UC23), exception and compression session, PI Adapters and Edge Data Store workshops, egress documentation (osisoft.github.io/Edge-Data-Store-Docs).",
+        "Vendor knowledge-base content (via copies): PI Data Archive backup best practices; AF collectives no longer recommended (KB00634).",
+        "Industry: OPC Foundation guidance and Microsoft DCOM hardening (CVE-2021-26414); IEC 62443 zones and conduits.",
+        "Still to verify:",
+        "Verify: PI Connector lifecycle and failover by version.",
+        "Verify: PI OLE DB Enterprise and PI SQL Client lifecycle.",
+        "Verify: default exception and compression values in your version.",
+        "Verify: PI Integrator 'PI Views' status.",
+        "Verify: ACE retirement date.",
+        "Verify: Edge Data Store buffer sizing and retry behaviour.",
+        "To be covered: file and stream loader product name."
+      ]
+    }
+  ],
+  "trademarkNote": "AVEVA, PI System and related names are trademarks of their respective owners. Independent learning notes; not affiliated with or endorsed by AVEVA."
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var TODO = "To be covered";
+  var data = JSON.parse(document.getElementById("story-data").textContent);
+  var NS = "http://www.w3.org/2000/svg";
+  var map = data.map, scenes = data.scenes || [], N = scenes.length;
+  var idx = 0;
+  var $ = function (id) { return document.getElementById(id); };
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  var ICONS = {
+    sensor: '<circle cx="24" cy="22" r="13"/><path d="M24 22l7-6M24 35v8M16 43h16"/>',
+    controller: '<rect x="8" y="8" width="32" height="32" rx="3"/><path d="M14 16h20M14 24h20M14 32h8"/><circle cx="32" cy="32" r="2"/>',
+    document: '<path d="M12 4h16l10 10v30H12z"/><path d="M28 4v10h10M18 24h14M18 32h14"/>',
+    chip: '<rect x="10" y="10" width="28" height="28" rx="3"/><path d="M18 4v6M30 4v6M18 38v6M30 38v6M4 18h6M4 30h6M38 18h6M38 30h6"/>',
+    collector: '<path d="M6 10h36L28 26v14l-8 4V26z"/>',
+    archive: '<ellipse cx="24" cy="12" rx="14" ry="6"/><path d="M10 12v24c0 3.3 6.3 6 14 6s14-2.7 14-6V12M10 24c0 3.3 6.3 6 14 6s14-2.7 14-6"/>',
+    context: '<rect x="17" y="5" width="14" height="10" rx="2"/><rect x="4" y="33" width="14" height="10" rx="2"/><rect x="30" y="33" width="14" height="10" rx="2"/><path d="M24 15v8M11 33v-6h26v6"/>',
+    calculation: '<rect x="8" y="5" width="32" height="38" rx="3"/><path d="M14 11h20v8H14zM15 27h4M15 35h4M25 27h4M25 35h4"/>',
+    enterprise: '<rect x="6" y="6" width="36" height="12" rx="2"/><rect x="6" y="22" width="36" height="12" rx="2"/><path d="M12 12h2M12 28h2M24 34v6M14 42h20"/>',
+    cloud: '<path d="M14 38a9 9 0 010-18 12 12 0 0122-3 10 10 0 012 21z"/>',
+    consume: '<rect x="4" y="7" width="40" height="27" rx="3"/><path d="M16 42h16M24 34v8M10 28l8-9 6 5 9-11"/>',
+    grid: '<rect x="6" y="8" width="36" height="32" rx="3"/><path d="M6 20h36M6 30h36M20 8v32"/>',
+    api: '<path d="M16 14L6 24l10 10M32 14l10 10-10 10M27 10l-6 28"/>',
+    layers: '<path d="M24 6l18 9-18 9-18-9zM6 24l18 9 18-9M6 33l18 9 18-9"/>',
+    box: '<rect x="8" y="8" width="32" height="32" rx="4"/>'
+  };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function sv(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  /* ---------- map ---------- */
+  var nodeById = {}, edgeEls = {}, nodeEls = {};
+  var NW = map.node.w, NH = map.node.h;
+
+  function half(n) { return n.type === "hub" ? { w: 14, h: 14 } : { w: NW / 2, h: NH / 2 }; }
+  function clip(a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y, h = half(a);
+    var t = Math.min(dx === 0 ? Infinity : (h.w + 3) / Math.abs(dx), dy === 0 ? Infinity : (h.h + 3) / Math.abs(dy));
+    return { x: a.x + dx * t, y: a.y + dy * t };
+  }
+
+  function buildMap() {
+    var svg = $("map");
+    svg.setAttribute("viewBox", "0 0 " + map.width + " " + map.height);
+    var defs = sv("defs", {}, svg);
+    var m1 = sv("marker", { id: "arr", viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto-start-reverse" }, defs);
+    sv("path", { d: "M0 0L10 5L0 10z", "class": "mk" }, m1);
+
+    (map.zones || []).forEach(function (z) {
+      sv("rect", { "class": "zone", x: z.x, y: 24, width: z.w, height: map.height - 34, rx: 8 }, svg);
+      var t = sv("text", { "class": "zone-label", x: z.x + z.w / 2, y: 17 }, svg);
+      t.textContent = z.name;
+    });
+
+    map.nodes.forEach(function (n) { nodeById[n.id] = n; });
+
+    (map.edges || []).forEach(function (e) {
+      var a = nodeById[e.from], b = nodeById[e.to];
+      if (!a || !b) return;
+      var p1 = clip(a, b), p2 = clip(b, a);
+      var d = "M" + p1.x + " " + p1.y + "L" + p2.x + " " + p2.y;
+      var path = sv("path", { "class": "edge" + (e.type === "ref" ? " ref" : ""), d: d, "marker-end": "url(#arr)" }, svg);
+      if (e.type === "ref") path.setAttribute("marker-start", "url(#arr)");
+      var pulse = null;
+      if (e.type !== "ref") {
+        pulse = sv("circle", { "class": "pulse", r: 3.5, visibility: "hidden" }, svg);
+        var am = sv("animateMotion", { dur: "1.6s", repeatCount: "indefinite", path: d }, pulse);
+      }
+      edgeEls[e.id] = { path: path, pulse: pulse, def: e };
+    });
+
+    map.nodes.forEach(function (n) {
+      var g = sv("g", { "class": "node" + (n.type === "hub" ? " hub" : ""), transform: "translate(" + n.x + "," + n.y + ")" }, svg);
+      if (n.type === "hub") {
+        sv("circle", { r: 9, cx: 0, cy: 0 }, g);
+        var tt = sv("text", { "class": "l2", x: 0, y: 24 }, g);
+        tt.textContent = n.l1;
+      } else {
+        sv("rect", { x: -NW / 2, y: -NH / 2, width: NW, height: NH, rx: 8 }, g);
+        var ic = sv("svg", { x: -12, y: -NH / 2 + 5, width: 24, height: 24, viewBox: "0 0 48 48", "class": "ic" }, g);
+        ic.innerHTML = ICONS[n.icon] || ICONS.box;
+        var l1 = sv("text", { "class": "l1", x: 0, y: NH / 2 - 19 }, g); l1.textContent = n.l1;
+        var l2 = sv("text", { "class": "l2", x: 0, y: NH / 2 - 7 }, g); l2.textContent = n.l2 || "";
+        sv("rect", { "class": "ring", x: -NW / 2 - 4, y: -NH / 2 - 4, width: NW + 8, height: NH + 8, rx: 11 }, g);
+        if (n.store) sv("circle", { "class": "badge " + n.store, cx: NW / 2 - 9, cy: -NH / 2 + 9, r: 5.5, "data-store": n.store }, g);
+      }
+      nodeEls[n.id] = g;
+    });
+  }
+
+  function seenSets(upto) {
+    var nodes = {}, edges = {};
+    for (var i = 0; i < upto; i++) {
+      var s = scenes[i];
+      if (s.nodes === "all") map.nodes.forEach(function (n) { nodes[n.id] = true; });
+      else (s.nodes || []).forEach(function (n) { nodes[n] = true; });
+      (s.reveal || []).forEach(function (n) { nodes[n] = true; });
+      (s.edges || []).forEach(function (e) { edges[e] = true; });
+    }
+    return { nodes: nodes, edges: edges };
+  }
+
+  function paintMap() {
+    var seen = seenSets(idx), s = idx > 0 ? scenes[idx - 1] : null;
+    var storesAt = scenes.findIndex(function (x) { return x.id === "stores"; }) + 1, badgesOn = storesAt > 0 && idx >= storesAt;
+    $("map").classList.toggle("badges", badgesOn);
+    $("storelegend").hidden = !badgesOn;
+    var focusN = {}, focusE = {};
+    if (s && s.nodes !== "all") (s.nodes || []).forEach(function (n) { focusN[n] = true; });
+    if (s) (s.edges || []).forEach(function (e) { focusE[e] = true; });
+    Object.keys(nodeEls).forEach(function (id) {
+      nodeEls[id].setAttribute("class", "node" + (nodeById[id].type === "hub" ? " hub" : "") + (focusN[id] ? " focus" : seen.nodes[id] ? " seen" : ""));
+    });
+    var flows = $("flows");
+    flows.textContent = "";
+    Object.keys(edgeEls).forEach(function (id) {
+      var o = edgeEls[id], f = focusE[id], base = "edge" + (o.def.type === "ref" ? " ref" : "");
+      o.path.setAttribute("class", base + (f ? " focus" : seen.edges[id] ? " seen" : ""));
+      if (o.pulse) o.pulse.setAttribute("visibility", f && !reduced.matches ? "visible" : "hidden");
+      if (f) {
+        var a = nodeById[o.def.from], b = nodeById[o.def.to], row = el("div");
+        var names = function (n) { return n.type === "hub" ? "Read access" : n.l1 + (n.l2 ? " " + n.l2 : ""); };
+        row.appendChild(el("b", null, names(a) + (o.def.type === "ref" ? " ↔ " : " → ") + names(b)));
+        row.appendChild(document.createTextNode(" · " + o.def.label));
+        if (o.def.hop) row.appendChild(el("span", "hop", " · " + o.def.hop));
+        row.dataset.key = o.def.label + "|" + (o.def.hop || "");
+        flows.appendChild(row);
+      }
+    });
+    // collapse repeated labels of consumer fan-out into one line
+    var rows = Array.prototype.slice.call(flows.children), seenLabel = {};
+    rows.forEach(function (r) {
+      var key = r.dataset.key;
+      if (seenLabel[key] && /Read access →/.test(r.firstChild.textContent)) r.remove(); else seenLabel[key] = true;
+    });
+  }
+
+  function setRings(ids) {
+    Object.keys(nodeEls).forEach(function (id) { nodeEls[id].setAttribute("data-ring", ids && ids.indexOf(id) >= 0 ? "1" : "0"); });
+  }
+  function simMapSteps(cfg) {
+    var frames = cfg.steps.map(function (st) {
+      var roles = [];
+      (st.nodes || []).forEach(function (id) {
+        var r = nodeById[id] && nodeById[id].store;
+        if (r && roles.indexOf(r) < 0) roles.push(r);
+      });
+      var head = st.title + (roles.length && !st.noRole ? " · " + roles.map(function (r) { return r.charAt(0).toUpperCase() + r.slice(1); }).join(" / ") : "");
+      return { info: { head: head, caption: st.caption, nodes: st.nodes || [] } };
+    });
+    return { frames: frames, N: frames.length, rows: null };
+  }
+
+  /* ---------- slope charts (exception and compression) ---------- */
+  var activeChart = null, chartSeq = 0;
+  function fmt(x) { if (Math.abs(x) < 5e-4) x = 0; var s = x.toFixed(3); if (s.charAt(s.length - 1) === "0") s = s.slice(0, -1); return s.replace("-", "−"); }
+  function fv(x) { return x.toFixed(2); }
+  function lerp(a, b, k) {
+    if (typeof a === "number" && typeof b === "number") return a + (b - a) * k;
+    if (Array.isArray(a)) return a.map(function (x, i) { return lerp(x, b[i], k); });
+    if (a && typeof a === "object") { var o = {}; for (var key in b) o[key] = key in a ? lerp(a[key], b[key], k) : b[key]; return o; }
+    return b;
+  }
+  function pstate(P, k, sent, extra) {
+    return P.map(function (q, i) {
+      return { a: i <= k ? 1 : 0, fill: sent(i) ? 1 : 0, big: i === k ? 1 : 0, warn: extra && extra.warn === i ? 1 : 0 };
+    });
+  }
+
+  function simException(cfg) {
+    var P = cfg.points, dev = cfg.dev, sent = P.map(function () { return false; }), frames = [], rows = [], last = 0;
+    var zeros = function () { return P.map(function () { return 0; }); };
+    for (var k = 0; k < P.length; k++) {
+      var p = P[k], lastBefore = P[last], diff = k === 0 ? 0 : Math.abs(p.v - lastBefore.v), decision, caption, old = null, hl = 0;
+      if (k === 0) {
+        sent[0] = true; decision = "Sent (first value)";
+        caption = p.label + " arrives: the first value is always sent. The box is " + fv(p.v - dev) + "–" + fv(p.v + dev) + " bar around it.";
+      } else if (diff > dev + 1e-9) {
+        old = { x0: lastBefore.t, x1: p.t, lo: lastBefore.v - dev, hi: lastBefore.v + dev };
+        if (!sent[k - 1]) { sent[k - 1] = true; hl = 1; }
+        sent[k] = true; last = k;
+        decision = "Sent" + (hl ? ", with " + P[k - 1].label + " (previous value)" : "");
+        caption = p.label + " (" + fv(p.v) + ") is " + (p.v > lastBefore.v ? "above" : "below") + " the box, so " + p.label + " is sent" +
+          (hl ? ", and " + P[k - 1].label + " is sent with it." : ".");
+      } else {
+        decision = "Held (inside the box)";
+        caption = p.label + " (" + fv(p.v) + ") is inside the box, so it is held, not sent.";
+      }
+      if (k === P.length - 1 && cfg.final) caption += " " + cfg.final;
+      var L = P[last], x1 = Math.max(p.t, L.t + 0.3), snap = sent.slice();
+      var prevP = P[Math.max(0, k - 1)];
+      frames.push({
+        n: {
+          box: { x0: L.t, x1: x1, lo: L.v - dev, hi: L.v + dev },
+          old: old ? { x0: old.x0, x1: old.x1, lo: old.lo, hi: old.hi, a: 1 } : { x0: L.t, x1: x1, lo: L.v - dev, hi: L.v + dev, a: 0 },
+          hl: { a: hl, t: prevP.t, v: prevP.v },
+          dim: { a: 0 }, q: { a: 0, m: zeros() },
+          pts: pstate(P, k, function (i) { return snap[i]; })
+        },
+        info: { caption: caption }
+      });
+      rows.push([k + 1, p.label, p.t + " s", fv(p.v), lastBefore.label + " (" + fv(lastBefore.v) + ")", fv(diff), decision]);
+    }
+    var sentIdx = [];
+    sent.forEach(function (f, i) { if (f) sentIdx.push(i); });
+    frames.forEach(function (f) { f.info.sentIdx = sentIdx; });
+    if (cfg.buffer) {
+      var fin = JSON.parse(JSON.stringify(frames[frames.length - 1].n));
+      fin.dim.a = 1; fin.q = { a: 1, m: P.map(function (q, i) { return sent[i] ? 1 : 0; }) };
+      fin.pts.forEach(function (o) { o.big = 0; });
+      frames.push({ n: fin, info: { caption: cfg.buffer.caption, sentIdx: sentIdx } });
+      rows.push([P.length + 1, "Buffer", "–", "–", "–", "–", sentIdx.map(function (i) { return P[i].label; }).join(", ") + " queued"]);
+    }
+    return { frames: frames, N: frames.length, rows: rows, head: ["Step", "Point", "Time", "Value", "Last sent", "Difference", "Decision"] };
+  }
+
+  function simCompression(cfg) {
+    var P = cfg.points, dev = cfg.dev, arch = [0], frames = [], rows = [];
+    var up = Infinity, lo = -Infinity, upBy = -1, loBy = -1, lastK = P.length - 1;
+    for (var k = 1; k <= lastK; k++) {
+      var A = P[arch[arch.length - 1]], N = P[k], slope = (N.v - A.v) / (N.t - A.t);
+      var testFrom = A, oldUp = up, oldLo = lo, inside = slope >= lo - 1e-9 && slope <= up + 1e-9;
+      var warn = -1, closing = false, caption, decision, legend, below = slope < lo;
+      if (!inside) {
+        closing = true; warn = below ? loBy : upBy;
+        arch.push(k - 1); A = P[k - 1]; up = Infinity; lo = -Infinity;
+      }
+      var dt = N.t - A.t, u = (N.v + dev - A.v) / dt, l = (N.v - dev - A.v) / dt;
+      if (u < up) { up = u; upBy = k; }
+      if (l > lo) { lo = l; loBy = k; }
+      var head = N.t + " s (" + fv(N.v) + ")";
+      if (k === 1) {
+        caption = head + " arrives and becomes the snapshot. The doors open from the archived point at " + A.t + " s.";
+        decision = "Snapshot"; legend = ["Doors open: upper " + fmt(up) + ", lower " + fmt(lo), "Test slope " + fmt(slope)];
+      } else if (inside) {
+        caption = head + ": the test slope " + fmt(slope) + " is inside the doors, so the " + P[k - 1].t + " s value is dropped.";
+        decision = "Dropped " + P[k - 1].t + " s";
+        legend = ["Test slope " + fmt(slope) + " is inside [" + fmt(oldLo) + ", " + fmt(oldUp) + "]", "Doors narrow to upper " + fmt(up) + ", lower " + fmt(lo)];
+      } else {
+        caption = head + ": the test slope " + fmt(slope) + " falls " + (below ? "below the lower" : "above the upper") + " door, so the doors close and the " + P[k - 1].t + " s value is archived.";
+        decision = "Doors close: " + P[k - 1].t + " s archived";
+        legend = ["Test slope " + fmt(slope) + " is " + (below ? "below the lower door " + fmt(oldLo) : "above the upper door " + fmt(oldUp)) + ": doors close",
+                  "New doors from " + A.t + " s: upper " + fmt(up) + ", lower " + fmt(lo)];
+      }
+      if (k === lastK && cfg.final) caption += " " + cfg.final;
+      var snap = arch.slice(), doors = { x0: A.t, y0: A.v, up: up, lo: lo, xe: N.t };
+      frames.push({
+        n: {
+          doors: doors,
+          ghost: closing ? { x0: testFrom.t, y0: testFrom.v, up: oldUp, lo: oldLo, xe: N.t, a: 1 }
+                         : { x0: doors.x0, y0: doors.y0, up: doors.up, lo: doors.lo, xe: doors.xe, a: 0 },
+          test: { x0: testFrom.t, y0: testFrom.v, t: N.t, v: N.v },
+          hist: { a: k === lastK ? 1 : 0 },
+          pts: pstate(P, k, function (i) { return snap.indexOf(i) >= 0; }, { warn: warn })
+        },
+        info: { caption: caption, legend: legend, k: k }
+      });
+      rows.push([k, N.t + " s", fv(N.v), fmt(slope), fmt(up), fmt(lo), decision]);
+    }
+    return { frames: frames, rows: rows, arch: arch, head: ["Step", "Time", "Value", "Test slope", "Upper door", "Lower door", "Decision"] };
+  }
+
+  function simZones(cfg) {
+    var N = 5;
+    return {
+      N: N, rows: null,
+      frame: function (i, mode) {
+        var diode = mode === "diode", cap;
+        if (i === 0) cap = cfg.steps[0];
+        else if (i === 1) cap = cfg.steps[1];
+        else if (i === 2) cap = cfg.steps[2];
+        else if (i === 3) cap = cfg.steps[3];
+        else cap = diode ? cfg.diode.text + " " + cfg.diode.result : cfg.firewall.text;
+        return {
+          n: { site: { a: 1 }, ent: { a: i >= 1 ? 1 : 0.25 }, lap: { a: i >= 2 ? 1 : 0.25 },
+               ar: [1, i >= 1 ? 1 : 0, i >= 2 ? 1 : 0], cross: { a: i >= 3 ? 1 : 0 }, bar: { a: i >= 4 ? 1 : 0, m: diode ? 1 : 0 } },
+          info: { caption: cap }
+        };
+      }
+    };
+  }
+
+  function chartBlock(cfg) {
+    var sim = cfg.kind === "exception" ? simException(cfg) : cfg.kind === "zones" ? simZones(cfg) : cfg.kind === "map-steps" ? simMapSteps(cfg) : simCompression(cfg);
+    var N = sim.N || sim.frames.length, id = "c" + (++chartSeq);
+    var F = function (i) { return sim.frame ? sim.frame(i, state.mode) : sim.frames[i]; };
+    var W = 520, H = cfg.kind === "zones" ? 270 : 290, ml = 50, mr = 64, mt = 14, mb = 40, pw = W - ml - mr, ph = H - mt - mb;
+    var X = function (t) { return ml + pw * t / cfg.tmax; };
+    var Y = function (v) { return mt + ph * (cfg.vmax - v) / (cfg.vmax - cfg.vmin); };
+    var state = { step: 0, cur: null, raf: 0, mode: "firewall" }, curDim = 0;
+    var titles = { exception: "Walkthrough: exception test", compression: "Walkthrough: swinging door compression", zones: "Walkthrough: network zones", "map-steps": cfg.title || "Walkthrough" };
+
+    var box = el("div", "sec walk");
+    box.appendChild(el("h3", null, titles[cfg.kind]));
+    var holder = el("div", "chart");
+    var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": titles[cfg.kind] });
+    holder.appendChild(svg);
+    var caption = el("div", "caption"); caption.setAttribute("aria-live", "polite");
+    var ctl = el("div", "ctl walkctl");
+    var back = el("button", null, "◀ Back"), nxt = el("button", "primary", "Next step ▶"), rst = el("button", null, "Restart"), lab = el("span", "stepno");
+    back.type = nxt.type = rst.type = "button";
+    back.title = "Previous step (Shift+Left)"; nxt.title = "Next step (Shift+Right)"; rst.title = "Restart the walkthrough";
+    ctl.appendChild(back); ctl.appendChild(lab); ctl.appendChild(nxt); ctl.appendChild(rst);
+    if (cfg.kind !== "map-steps") box.appendChild(holder);
+    var tog = null, togBtns = {};
+    if (cfg.kind === "zones") {
+      tog = el("div", "toggle"); tog.setAttribute("role", "group"); tog.setAttribute("aria-label", "Barrier type");
+      [["firewall", "Firewall"], ["diode", "Data diode"]].forEach(function (m) {
+        var b = el("button", null, m[1]); b.type = "button"; togBtns[m[0]] = b;
+        b.addEventListener("click", function () { state.mode = m[0]; show(state.step, true); });
+        tog.appendChild(b);
+      });
+      box.appendChild(tog);
+    }
+    box.appendChild(caption);
+    if (cfg.note) box.appendChild(el("div", "key", cfg.note));
+    var trs = [];
+    if (sim.rows) {
+      var det = el("details", "numbers"), sum = el("summary", null, "Show numbers");
+      det.appendChild(sum);
+      var tbl = el("table"), thead = el("tr");
+      sim.head.forEach(function (h) { thead.appendChild(el("th", null, h)); });
+      tbl.appendChild(thead);
+      trs = sim.rows.map(function (r) { var tr = el("tr"); r.forEach(function (c) { tr.appendChild(el("td", null, String(c))); }); tbl.appendChild(tr); return tr; });
+      det.appendChild(tbl);
+      box.appendChild(det);
+    }
+    box.ctl = ctl;
+
+    function T(x, y, txt, attrs) {
+      var t = sv("text", Object.assign({ x: x, y: y, "class": "ax" }, attrs || {}), svg);
+      t.textContent = txt; return t;
+    }
+    function circle(p, o, i) {
+      var cx = X(cfg.points[i].t), cy = Y(cfg.points[i].v), r = 4.5 + 2.5 * o.big;
+      if (o.a <= 0.01) return;
+      var op = o.a * (o.fill > 0.5 ? 1 : 1 - 0.65 * curDim);
+      var g = sv("g", { opacity: op, "data-role": "pt", "data-label": cfg.points[i].label, "data-fill": o.fill.toFixed(2), "data-warn": o.warn.toFixed(2) }, svg);
+      sv("circle", { cx: cx, cy: cy, r: r, fill: "var(--panel)", stroke: "var(--muted)", "stroke-width": 1.6 }, g);
+      sv("circle", { cx: cx, cy: cy, r: r, fill: "var(--accent)", stroke: "var(--accent)", "stroke-width": 1.6, opacity: o.fill }, g);
+      sv("circle", { cx: cx, cy: cy, r: r, fill: "var(--warn)", stroke: "var(--warn)", "stroke-width": 1.6, opacity: o.warn }, g);
+      if (o.big > 0.01) sv("circle", { cx: cx, cy: cy, r: r + 3, fill: "none", stroke: "var(--text)", "stroke-width": 1.6, opacity: o.big }, g);
+      var tx = sv("text", { x: cx, y: cy - r - 6, "class": "pl" }, g); tx.textContent = cfg.points[i].label;
+    }
+    function line(x1, y1, x2, y2, attrs) { return sv("line", Object.assign({ x1: x1, y1: y1, x2: x2, y2: y2 }, attrs), svg); }
+
+    function paintZones(s) {
+      var cols = [[8, 168, "Plant network"], [180, 160, "Industrial DMZ"], [346, 166, "Corporate network"]];
+      cols.forEach(function (c, i) {
+        sv("rect", { x: c[0], y: 8, width: c[1], height: H - 16, rx: 8, fill: i === 1 ? "var(--soft)" : "var(--bg)", stroke: "var(--border)", "stroke-dasharray": i === 1 ? "5 3" : "0" }, svg);
+        T(c[0] + c[1] / 2, 24, c[2], { "text-anchor": "middle", "class": "ax t" });
+      });
+      var node = function (cx, cy, txt, a, role) {
+        var g = sv("g", { opacity: a, "data-role": role }, svg);
+        sv("rect", { x: cx - 56, y: cy - 22, width: 112, height: 44, rx: 8, fill: "var(--panel)", stroke: "var(--accent)", "stroke-width": 1.6 }, g);
+        var t = sv("text", { x: cx, y: cy + 4, "class": "pl" }, g); t.textContent = txt;
+      };
+      var arrow = function (x1, y1, x2, y2, a, role, both) {
+        var g = sv("g", { opacity: a, "data-role": role }, svg);
+        sv("line", { x1: x1, y1: y1, x2: x2, y2: y2, stroke: "var(--accent)", "stroke-width": 2.2 }, g);
+        var ang = Math.atan2(y2 - y1, x2 - x1), hs = 7;
+        var head = function (x, y, an) { sv("polygon", { points: [x + "," + y, (x - hs * Math.cos(an - 0.45)) + "," + (y - hs * Math.sin(an - 0.45)), (x - hs * Math.cos(an + 0.45)) + "," + (y - hs * Math.sin(an + 0.45))].join(" "), fill: "var(--accent)" }, g); };
+        head(x2, y2, ang); if (both) head(x1, y1, ang + Math.PI);
+      };
+      var SX = 92, EX = 429, YT = 96, YL = 214;
+      arrow(SX + 56, YT, 260, YT, s.ar[0], "ar-out");
+      T(214, YT - 32, "outward", { "text-anchor": "middle", opacity: s.ar[0] });
+      arrow(260, YT, EX - 56, YT, s.ar[1], "ar-in");
+      T(294, YT - 32, "from the DMZ side", { "text-anchor": "middle", opacity: s.ar[1] });
+      arrow(EX, YL - 22, EX, YT + 22, s.ar[2], "ar-query", true);
+      T(EX + 8, 160, "queries", { opacity: s.ar[2] });
+      node(SX, YT, "Site PI", s.site.a, "n-site");
+      node(EX, YT, "Enterprise PI", s.ent.a, "n-ent");
+      node(EX, YL, "Engineer's laptop", s.lap.a, "n-lap");
+      if (s.cross.a > 0.01) {
+        var g = sv("g", { opacity: s.cross.a, "data-role": "cross" }, svg);
+        sv("line", { x1: EX - 56, y1: YL, x2: SX, y2: YT + 22, stroke: "var(--warn)", "stroke-width": 2, "stroke-dasharray": "5 4" }, g);
+        var mx = 260, my = YL - (YL - YT - 22) * ((EX - 56 - 260) / (EX - 56 - SX));
+        sv("line", { x1: mx - 9, y1: my - 9, x2: mx + 9, y2: my + 9, stroke: "var(--warn)", "stroke-width": 3.5 }, g);
+        sv("line", { x1: mx - 9, y1: my + 9, x2: mx + 9, y2: my - 9, stroke: "var(--warn)", "stroke-width": 3.5 }, g);
+        ["if the laptop is infected,", "the attack stops at the DMZ"].forEach(function (ln, j) {
+          var t = sv("text", { x: 260, y: 246 + j * 13, "class": "ax hlt", "text-anchor": "middle", style: "fill:var(--warn)" }, g); t.textContent = ln;
+        });
+      }
+      if (s.bar.a > 0.01) {
+        var b = sv("g", { opacity: s.bar.a, "data-role": "barrier", "data-mode": s.bar.m > 0.5 ? "diode" : "firewall" }, svg);
+        [180, 340].forEach(function (bx) {
+          var fw = sv("g", { opacity: 1 - s.bar.m }, b);
+          sv("rect", { x: bx - 5, y: YT - 26, width: 10, height: 52, fill: "var(--warn)", opacity: 0.85 }, fw);
+          [-16, -4, 8].forEach(function (dy) { line(bx - 5, YT + dy, bx + 5, YT + dy, { stroke: "var(--bg)", "stroke-width": 1.5 }); });
+          var dg = sv("g", { opacity: s.bar.m }, b);
+          sv("polygon", { points: (bx - 8) + "," + (YT - 14) + " " + (bx + 8) + "," + YT + " " + (bx - 8) + "," + (YT + 14), fill: "var(--accent)" }, dg);
+          sv("rect", { x: bx + 8, y: YT - 14, width: 3, height: 28, fill: "var(--accent)" }, dg);
+        });
+        var lb = sv("text", { x: 260, y: YT + 40, "class": "ax hlt", "text-anchor": "middle" }, b);
+        lb.textContent = s.bar.m > 0.5 ? "agent on each side copies data" : "software rules, two-way where allowed";
+      }
+    }
+
+    function paint(s, info) {
+      svg.textContent = "";
+      if (cfg.kind === "zones") { paintZones(s); return; }
+      var defs = sv("defs", {}, svg), cp = sv("clipPath", { id: id }, defs);
+      sv("rect", { x: ml, y: mt, width: pw, height: ph }, cp);
+      sv("rect", { x: ml, y: mt, width: pw, height: ph, fill: "var(--bg)", stroke: "var(--border)" }, svg);
+      var step = cfg.vstep || 0.05, v;
+      curDim = s.dim ? s.dim.a : 0;
+      for (v = cfg.vmin; v <= cfg.vmax + 1e-9; v += step) {
+        line(ml, Y(v), ml + pw, Y(v), { stroke: "var(--border)", "stroke-width": 0.6, opacity: 0.7 });
+        T(ml - 6, Y(v) + 3.5, v.toFixed(2), { "text-anchor": "end" });
+      }
+      for (var t = 0; t <= cfg.tmax; t++) {
+        line(X(t), mt, X(t), mt + ph, { stroke: "var(--border)", "stroke-width": 0.6, opacity: 0.7 });
+        T(X(t), mt + ph + 14, String(t), { "text-anchor": "middle" });
+      }
+      T(ml + pw / 2, H - 6, "Time (s)", { "text-anchor": "middle", "class": "ax t" });
+      T(12, mt + ph / 2, "Value (bar)", { "text-anchor": "middle", "class": "ax t", transform: "rotate(-90 12 " + (mt + ph / 2) + ")" });
+      var g = sv("g", { "clip-path": "url(#" + id + ")" }, svg);
+      var keep = svg; svg = g;
+      var i, o, bo = 1 - 0.7 * curDim;
+      if (cfg.kind === "exception") {
+        if (s.old.a > 0.01) sv("rect", { x: X(s.old.x0), y: Y(s.old.hi), width: X(s.old.x1) - X(s.old.x0), height: Y(s.old.lo) - Y(s.old.hi), fill: "none", stroke: "var(--accent)", "stroke-dasharray": "4 3", opacity: 0.55 * s.old.a * bo }, svg);
+        sv("rect", { x: X(s.box.x0), y: Y(s.box.hi), width: X(s.box.x1) - X(s.box.x0), height: Y(s.box.lo) - Y(s.box.hi), fill: "var(--accent-tint)", stroke: "var(--accent)", "stroke-width": 1.2, opacity: 0.95 * bo, "data-role": "exc-box", "data-lo": s.box.lo.toFixed(3), "data-hi": s.box.hi.toFixed(3), "data-x0": s.box.x0.toFixed(2), "data-x1": s.box.x1.toFixed(2) }, svg);
+        var mid = (s.box.lo + s.box.hi) / 2;
+        line(X(s.box.x0), Y(mid), X(s.box.x1), Y(mid), { stroke: "var(--accent)", "stroke-width": 1.4, "stroke-dasharray": "5 3", opacity: bo });
+        if (s.hl.a > 0.01) {
+          sv("rect", { x: X(s.hl.t) - 13, y: Y(s.hl.v) - 13, width: 26, height: 26, rx: 7, fill: "none", stroke: "var(--accent)", "stroke-width": 1.6, "stroke-dasharray": "3 2", opacity: s.hl.a * bo }, svg);
+          var hlt = sv("text", { x: X(s.hl.t) + 2, y: Y(s.hl.v) + 28, "class": "ax hlt", opacity: s.hl.a * bo, "text-anchor": "middle" }, svg); hlt.textContent = "previous value also sent";
+        }
+      } else {
+        var wedge = function (d) { var dtt = d.xe - d.x0; return { yu: d.y0 + d.up * dtt, yl: d.y0 + d.lo * dtt }; };
+        if (s.ghost.a > 0.01) {
+          var gd = wedge(s.ghost);
+          line(X(s.ghost.x0), Y(s.ghost.y0), X(s.ghost.xe), Y(gd.yu), { stroke: "var(--accent)", "stroke-dasharray": "4 3", opacity: 0.4 * s.ghost.a, "stroke-width": 1.5 });
+          line(X(s.ghost.x0), Y(s.ghost.y0), X(s.ghost.xe), Y(gd.yl), { stroke: "var(--accent)", "stroke-dasharray": "4 3", opacity: 0.4 * s.ghost.a, "stroke-width": 1.5 });
+        }
+        var d = s.doors, w = wedge(d);
+        sv("polygon", { points: [X(d.x0) + "," + Y(d.y0), X(d.xe) + "," + Y(w.yu), X(d.xe) + "," + Y(w.yl)].join(" "), fill: "var(--accent-tint)", opacity: 0.9 }, svg);
+        line(X(s.test.x0), Y(s.test.y0), X(s.test.t), Y(s.test.v), { stroke: "var(--text)", "stroke-width": 1.3, "stroke-dasharray": "2 3", "data-role": "test" });
+        line(X(d.x0), Y(d.y0), X(d.xe), Y(w.yu), { stroke: "var(--accent)", "stroke-width": 2, "data-role": "door-up", "data-slope": d.up.toFixed(4) });
+        line(X(d.x0), Y(d.y0), X(d.xe), Y(w.yl), { stroke: "var(--accent)", "stroke-width": 2, "data-role": "door-lo", "data-slope": d.lo.toFixed(4) });
+        var tu = sv("text", { x: X(d.xe) - 4, y: Y(w.yu) - 6, "class": "ax dl", "text-anchor": "end" }, svg); tu.textContent = "upper door";
+        var tl = sv("text", { x: X(d.xe) - 4, y: Y(w.yl) + 13, "class": "ax dl", "text-anchor": "end" }, svg); tl.textContent = "lower door";
+        for (i = 0; i < cfg.points.length; i++) {
+          o = s.pts[i]; if (o.a <= 0.01) continue;
+          var px = X(cfg.points[i].t);
+          line(px, Y(cfg.points[i].v + cfg.dev), px, Y(cfg.points[i].v - cfg.dev), { stroke: "var(--muted)", "stroke-width": 1.2, opacity: o.a });
+          line(px - 3, Y(cfg.points[i].v + cfg.dev), px + 3, Y(cfg.points[i].v + cfg.dev), { stroke: "var(--muted)", "stroke-width": 1.2, opacity: o.a });
+          line(px - 3, Y(cfg.points[i].v - cfg.dev), px + 3, Y(cfg.points[i].v - cfg.dev), { stroke: "var(--muted)", "stroke-width": 1.2, opacity: o.a });
+        }
+        if (s.hist.a > 0.01) {
+          var ar = sim.arch.map(function (k) { return cfg.points[k]; }), lastA = ar[ar.length - 1], snapP = cfg.points[cfg.points.length - 1];
+          sv("polyline", { points: ar.map(function (q) { return X(q.t) + "," + Y(q.v); }).join(" "), fill: "none", stroke: "var(--accent)", "stroke-width": 3, opacity: s.hist.a, "data-role": "hist" }, svg);
+          line(X(lastA.t), Y(lastA.v), X(snapP.t), Y(snapP.v), { stroke: "var(--accent)", "stroke-width": 2.4, "stroke-dasharray": "5 4", opacity: s.hist.a });
+        }
+      }
+      svg = keep;
+      for (i = 0; i < cfg.points.length; i++) circle(null, s.pts[i], i);
+      if (cfg.kind === "compression" && s.hist.a > 0.01) {
+        var sp = cfg.points[cfg.points.length - 1];
+        ["snapshot,", "not yet archived"].forEach(function (ln, j) { T(X(sp.t) + 14, Y(sp.v) + 1 + j * 11, ln, { "class": "ax hlt", opacity: s.hist.a }); });
+      }
+      if (cfg.kind === "exception") {
+        [[s.box.hi, "+ExcDev"], [s.box.lo, "−ExcDev"]].forEach(function (e) {
+          line(ml + pw, Y(e[0]), ml + pw + 6, Y(e[0]), { stroke: "var(--accent)", opacity: bo });
+          T(ml + pw + 8, Y(e[0]) + 3.5, e[1], { "class": "ax ed", opacity: bo });
+        });
+        if (s.q && s.q.a > 0.01) {
+          var qx = X(1.3), qw = X(4.9) - X(1.3), qy = mt + ph - 38, qh = 28, sIdx = info.sentIdx || [], n = sIdx.length;
+          var qg = sv("g", { opacity: s.q.a, "data-role": "queue" }, svg);
+          sv("rect", { x: qx, y: qy, width: qw, height: qh, rx: 6, fill: "var(--panel)", stroke: "var(--accent)", "stroke-width": 1.4 }, qg);
+          var qt = sv("text", { x: qx + 6, y: qy - 5, "class": "ax ed" }, qg); qt.textContent = "Queue on disk (buffer)";
+          sIdx.forEach(function (pi, j) {
+            var sx = qx + qw * (j + 1) / (n + 1), sy = qy + qh / 2, m = s.q.m[pi];
+            sv("circle", { cx: sx, cy: sy, r: 9, fill: "none", stroke: "var(--border)", "stroke-dasharray": "2 2" }, qg);
+            if (m > 0.01) {
+              var px2 = X(cfg.points[pi].t), py2 = Y(cfg.points[pi].v), cx = px2 + (sx - px2) * m, cy = py2 + (sy - py2) * m;
+              var ig = sv("g", { "data-role": "queued", "data-label": cfg.points[pi].label }, qg);
+              sv("circle", { cx: cx, cy: cy, r: 8, fill: "var(--accent)" }, ig);
+              var it = sv("text", { x: cx, y: cy + 3.5, "class": "pl", style: "fill:var(--accent-text)" }, ig); it.textContent = cfg.points[pi].label;
+            }
+          });
+          line(qx + qw, qy + qh / 2, ml + pw + 5, qy + qh / 2, { stroke: "var(--accent)", "stroke-width": 2, opacity: s.q.a });
+          ["to every", "Data Archive", "server"].forEach(function (ln, j) { T(ml + pw + 7, qy + 6 + j * 10, ln, { "class": "ax ed", style: "font-size:8px", opacity: s.q.a }); });
+        }
+      } else if (cfg.kind === "compression") {
+        var lg = info.legend || [];
+        lg.forEach(function (ln, j) { T(ml + pw - 6, mt + ph - 8 - (lg.length - 1 - j) * 13, ln, { "text-anchor": "end", "class": "ax lg2" }); });
+      }
+    }
+
+    function ui() {
+      var cinfo = F(state.step).info;
+      caption.textContent = "";
+      if (cinfo.head) { caption.appendChild(el("strong", "chead", cinfo.head)); caption.appendChild(document.createElement("br")); }
+      caption.appendChild(document.createTextNode(cinfo.caption));
+      lab.textContent = "Step " + (state.step + 1) + " of " + N;
+      back.disabled = state.step === 0; nxt.disabled = state.step === N - 1;
+      trs.forEach(function (tr, i) { tr.className = i === state.step ? "cur" : ""; });
+      if (tog) {
+        tog.style.display = state.step === N - 1 ? "flex" : "none";
+        Object.keys(togBtns).forEach(function (m) { togBtns[m].className = state.mode === m ? "on" : ""; togBtns[m].setAttribute("aria-pressed", String(state.mode === m)); });
+      }
+    }
+    function show(i, animate) {
+      i = Math.max(0, Math.min(N - 1, i));
+      cancelAnimationFrame(state.raf);
+      var fr = F(i), from = state.cur || fr.n, to = fr.n, t0 = null;
+      state.step = i; ui();
+      if (cfg.kind === "map-steps") { setRings(fr.info.nodes); return; }
+      if (!animate || reduced.matches || !state.cur) { state.cur = to; paint(to, fr.info); return; }
+      function tick(ts) {
+        if (t0 === null) t0 = ts;
+        var k = Math.min(1, (ts - t0) / 250); k = k * k * (3 - 2 * k);
+        state.cur = lerp(from, to, k); paint(state.cur, fr.info);
+        if (k < 1) state.raf = requestAnimationFrame(tick);
+      }
+      state.raf = requestAnimationFrame(tick);
+    }
+    back.addEventListener("click", function () { show(state.step - 1, true); });
+    nxt.addEventListener("click", function () { show(state.step + 1, true); });
+    rst.addEventListener("click", function () { show(0, true); });
+    activeChart = function (d) { show(state.step + d, true); };
+    show(0, false);
+    return box;
+  }
+
+  /* ---------- panel ---------- */
+  function section(cls, title) {
+    var d = el("div", "sec " + cls);
+    d.appendChild(el("h3", null, title));
+    return d;
+  }
+  function list(items) {
+    var ul = el("ul");
+    items.forEach(function (t) { ul.appendChild(el("li", null, t)); });
+    return ul;
+  }
+  function names(items) {
+    var ul = el("ul");
+    items.forEach(function (n) {
+      var li = el("li");
+      li.appendChild(el("span", "nm", n.name));
+      var extra = n.legacy ? " — legacy: " + n.legacy : n.note ? " — " + n.note : "";
+      if (extra) li.appendChild(el("span", "lg", extra));
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  function collect(kind) {
+    var out = [], seen = {};
+    scenes.forEach(function (s) {
+      if (s.kind) return;
+      (s[kind] || []).forEach(function (x) {
+        var key = typeof x === "string" ? x : (x.name || x.t);
+        if (seen[key]) return;
+        seen[key] = true;
+        out.push({ scene: s.title, item: x });
+      });
+    });
+    return out;
+  }
+
+  function renderPanel() {
+    var p = $("panel");
+    p.textContent = "";
+    var s = idx === 0 ? null : scenes[idx - 1];
+    var src = s || data.intro;
+    p.appendChild(el("h2", null, s ? idx + ". " + s.title : src.title));
+    if (s && s.preview) p.appendChild(el("div", "preview", s.preview));
+    if (s && s.remember) p.appendChild(el("div", "remember", s.remember));
+    activeChart = null;
+    setRings([]);
+    var walk = s && s.chart ? chartBlock(s.chart) : null;
+    if (src.what) {
+      var wp = el("p", "what");
+      var mm = walk ? src.what.match(/^(.+?[.!?])\s+(.+)$/) : null;
+      if (mm) {
+        wp.appendChild(document.createTextNode(mm[1] + " "));
+        var rest = el("span", "more", mm[2]); rest.hidden = true;
+        var tgl = el("button", "linkbtn", "more"); tgl.type = "button"; tgl.setAttribute("aria-expanded", "false");
+        tgl.addEventListener("click", function () { rest.hidden = !rest.hidden; tgl.textContent = rest.hidden ? "more" : "less"; tgl.setAttribute("aria-expanded", String(!rest.hidden)); });
+        wp.appendChild(rest); wp.appendChild(tgl);
+      } else wp.textContent = src.what;
+      p.appendChild(wp);
+    }
+    if (walk) p.appendChild(walk);
+
+    if (s && s.kind === "collect") {
+      var items = collect(s.collect), last = null, box = null;
+      items.forEach(function (o) {
+        if (o.scene !== last) { last = o.scene; box = el("div", "sec " + (s.collect === "names" ? "names" : s.collect)); box.appendChild(el("h3", null, o.scene)); p.appendChild(box); }
+        if (s.collect === "names") { var ul = names([o.item]); box.appendChild(ul); }
+        else if (s.collect === "terms") { var dl = el("dl"); dl.appendChild(el("dt", null, o.item.t)); dl.appendChild(el("dd", null, o.item.m)); box.appendChild(dl); }
+        else box.appendChild(list([o.item]));
+      });
+      if (!items.length) p.appendChild(el("p", "tbc", TODO));
+      return;
+    }
+
+    if (src.facts) { var f = section("facts", s ? "Key facts" : "Controls"); f.appendChild(list(src.facts)); p.appendChild(f); }
+
+    if (s && s.kind === "recap") {
+      var j = section("sample", "One value, stage by stage");
+      var ul = el("ul");
+      scenes.forEach(function (x) { if (x.sample) ul.appendChild(el("li", null, x.title + ": " + x.sample)); });
+      j.appendChild(ul);
+      p.appendChild(j);
+    }
+
+    if (s && s.sample) {
+      var sm = section("sample", "Sample data");
+      sm.appendChild(el("p", null, s.sample));
+      p.appendChild(sm);
+    }
+    if (s && s.names) { var n = section("names", "Names"); n.appendChild(names(s.names)); p.appendChild(n); }
+    if (s && s.limits) { var l = section("limits", "Limitations"); l.appendChild(list(s.limits)); p.appendChild(l); }
+    if (s && s.governance) { var g = section("governance", "Governance"); g.appendChild(list(s.governance)); p.appendChild(g); }
+    if (s && s.terms) {
+      var t = section("terms", "Terms");
+      var dl2 = el("dl");
+      s.terms.forEach(function (x) { dl2.appendChild(el("dt", null, x.t)); dl2.appendChild(el("dd", null, x.m)); });
+      t.appendChild(dl2); p.appendChild(t);
+    }
+    if (s && s.tbc) p.appendChild(el("p", "tbc", s.tbc));
+    if (!s) p.appendChild(el("p", "tbc", data.contentNote));
+    if (walk) p.appendChild(walk.ctl);
+    p.scrollTop = 0;
+  }
+
+  function render() {
+    paintMap();
+    renderPanel();
+    $("progress").textContent = "Stage " + idx + " of " + N;
+    $("prev").disabled = idx === 0;
+    $("next").disabled = idx >= N;
+    $("jump").value = String(idx);
+    var nar = $("narration");
+    nar.textContent = "";
+    if (idx === 0) nar.appendChild(el("span", null, data.intro.narration));
+    else {
+      nar.appendChild(el("span", "stage-name", idx + ". " + scenes[idx - 1].title));
+      nar.appendChild(document.createTextNode(scenes[idx - 1].narration || TODO));
+    }
+    var ft = $("footer");
+    ft.textContent = "Learning diagram · edition " + (data.edition || "");
+    if (data.trademarkNote) { ft.appendChild(document.createElement("br")); ft.appendChild(document.createTextNode(data.trademarkNote)); }
+  }
+
+  function go(n) { idx = Math.max(0, Math.min(N, n)); render(); }
+
+  function init() {
+    buildMap();
+    var jump = $("jump");
+    var o0 = el("option", null, "0 · Start"); o0.value = "0"; jump.appendChild(o0);
+    scenes.forEach(function (s, i) { var o = el("option", null, (i + 1) + " · " + s.title); o.value = String(i + 1); jump.appendChild(o); });
+    jump.addEventListener("change", function () { go(+jump.value); jump.blur(); });
+    var show = $("show");
+    show.appendChild(el("span", null, "Show:"));
+    [["names", "Names"], ["limits", "Limits"], ["governance", "Governance"], ["sample", "Sample"], ["terms", "Terms"]].forEach(function (k) {
+      var lab = el("label"), cb = el("input");
+      cb.type = "checkbox"; cb.checked = true;
+      cb.addEventListener("change", function () { document.body.classList.toggle("hide-" + k[0], !cb.checked); });
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(k[1])); show.appendChild(lab);
+    });
+    var sl = $("storelegend");
+    [["record", "record (authoritative)"], ["cache", "cache (temporary)"], ["copy", "copy (rebuildable)"]].forEach(function (k, i) {
+      var sp = el("span", "lgi");
+      var sg = sv("svg", { width: 12, height: 12, viewBox: "0 0 12 12" }, sp);
+      sv("circle", { "class": "badge " + k[0], cx: 6, cy: 6, r: 4.5 }, sg);
+      sp.appendChild(document.createTextNode(" " + k[1]));
+      if (i === 0) sl.appendChild(document.createTextNode("Data stores: "));
+      sl.appendChild(sp); if (i < 2) sl.appendChild(document.createTextNode(" · "));
+    });
+    $("next").addEventListener("click", function () { go(idx + 1); });
+    $("prev").addEventListener("click", function () { go(idx - 1); });
+    $("reset").addEventListener("click", function () { go(0); });
+    $("all").addEventListener("click", function () { go(N); });
+    $("full").addEventListener("click", toggleFullscreen);
+    render();
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.shiftKey && (e.key === "ArrowRight" || e.key === "ArrowLeft") && activeChart) { e.preventDefault(); activeChart(e.key === "ArrowRight" ? 1 : -1); return; }
+    var t = e.target, tag = t.tagName, field = tag === "INPUT" || tag === "SELECT";
+    if (field && e.key !== "f" && e.key !== "F" && !(tag === "INPUT" && t.type === "checkbox" && (e.key === "ArrowRight" || e.key === "ArrowLeft"))) {
+      if (tag === "SELECT" || t.type === "range") return;
+    }
+    switch (e.key) {
+      case "ArrowRight": e.preventDefault(); go(idx + 1); break;
+      case "ArrowLeft": e.preventDefault(); go(idx - 1); break;
+      case " ": if (tag !== "BUTTON" && !field) { e.preventDefault(); go(idx + 1); } break;
+      case "[": if (activeChart) activeChart(-1); break;
+      case "]": if (activeChart) activeChart(1); break;
+      case "Home": e.preventDefault(); go(0); break;
+      case "End": e.preventDefault(); go(N); break;
+      case "f": case "F": if (!field || t.type === "checkbox") toggleFullscreen(); break;
+    }
+  });
+  init();
+})();
+</script>
+</body>
+</html>
