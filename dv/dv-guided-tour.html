@@ -1,0 +1,3356 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data virtualisation guided tour</title>
+<style>
+:root {
+  --bg: #f3f6f7; --panel: #ffffff; --soft: #e9eff1; --text: #1c2a33; --muted: #566771;
+  --border: #c5d1d7; --accent: #0a6f7e; --accent-text: #ffffff; --accent-tint: #dcf0f3;
+  --warn: #8a5200; --warn-tint: #fbefd9;
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f171c; --panel: #172229; --soft: #1e2c34; --text: #e3ebef; --muted: #9bacb5;
+    --border: #2d3d46; --accent: #4cc3d4; --accent-text: #0b1a1f; --accent-tint: #173540;
+    --warn: #f0b45a; --warn-tint: #2e2616;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); overflow-x: hidden;
+  display: flex; flex-direction: column; padding: 0 16px; gap: 8px; }
+header { padding-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; }
+h1 { font-size: 1.1rem; margin: 0; font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+button, select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 11px; cursor: pointer; }
+select { max-width: 240px; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.45; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#progress { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 7em; text-align: center; }
+.show { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 0.8rem; color: var(--muted); align-items: center; }
+.show label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+
+main { flex: 1 1 auto; min-height: 0; display: grid; gap: 10px; grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr); }
+#left { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+#map-wrap { flex: 1 1 auto; min-height: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  display: flex; align-items: center; overflow: auto; }
+#map { width: 100%; height: auto; max-height: 100%; display: block; min-width: 560px; }
+#flows { min-height: 2.6em; font-size: 0.8rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+#flows b { color: var(--accent); font-weight: 600; }
+.legend { font-size: 0.72rem; color: var(--muted); }
+
+#panel { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+#panel h2 { margin: 0 0 6px; font-size: 1.05rem; }
+.preview { font-size: 0.72rem; color: var(--muted); margin: -2px 0 4px; }
+.remember { background: var(--accent-tint); border-left: 4px solid var(--accent); border-radius: 4px; padding: 6px 10px; font-size: 0.88rem; font-weight: 600; margin: 6px 0 8px; }
+.sec { margin: 8px 0; }
+.sec h3 { margin: 0 0 3px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+.sec p, .sec li { font-size: 0.84rem; line-height: 1.4; margin: 0; }
+.sec ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; }
+.sec .muted { color: var(--muted); }
+.sec.limits h3 { color: var(--warn); }
+.sec.limits { background: var(--warn-tint); border-radius: 5px; padding: 6px 10px; }
+.sec.sample { border: 1px dashed var(--border); border-radius: 5px; padding: 6px 10px; }
+.tbc { font-style: italic; color: var(--muted); font-size: 0.82rem; }
+dl { margin: 0; font-size: 0.82rem; line-height: 1.35; }
+dt { font-weight: 600; margin-top: 3px; }
+dd { margin: 0; color: var(--muted); }
+.nm { font-weight: 600; }
+.lg { color: var(--muted); font-size: 0.78rem; }
+
+#panel > * { flex: 0 0 auto; }
+.walkctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; position: sticky; bottom: -12px; margin: auto -14px -12px; padding: 8px 14px; background: var(--panel); border-top: 1px solid var(--border); z-index: 5; }
+.linkbtn { border: 0; background: none; color: var(--accent); padding: 0 2px; font-size: 0.84rem; text-decoration: underline; cursor: pointer; }
+.walk .toggle { display: none; gap: 0; margin: 6px 0 0; }
+.walk .toggle button { border-radius: 0; padding: 4px 12px; }
+.walk .toggle button:first-child { border-radius: 6px 0 0 6px; }
+.walk .toggle button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.walk .toggle button.on { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+#flows .hop { color: var(--muted); }
+.sec.walk { margin: 8px 0; }
+.chart { margin-top: 4px; }
+.chart svg { width: 100%; height: auto; display: block; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; }
+.chart .ax { font-size: 10px; fill: var(--muted); }
+.chart .ax.t { font-size: 10.5px; font-weight: 600; }
+.chart .pl { font-size: 11px; font-weight: 600; fill: var(--text); text-anchor: middle; }
+.chart .dl, .chart .ed { fill: var(--accent); font-weight: 600; }
+.chart .hlt { fill: var(--accent); font-weight: 600; }
+.chart .lg2 { fill: var(--text); font-size: 10.5px; }
+.walk .caption { font-size: 0.86rem; line-height: 1.35; margin: 6px 0; }
+.walkctl .stepno { font-size: 0.8rem; color: var(--muted); min-width: 6em; text-align: center; }
+.walk .key { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+.walk details { margin-top: 6px; font-size: 0.8rem; }
+.walk summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.walk table { border-collapse: collapse; width: 100%; margin-top: 4px; }
+.walk th, .walk td { border: 1px solid var(--border); padding: 2px 5px; text-align: left; font-size: 0.74rem; }
+.walk tr.cur td { background: var(--accent-tint); font-weight: 600; }
+
+#narration { background: var(--panel); border: 1px solid var(--border); border-left: 5px solid var(--accent);
+  border-radius: 6px; padding: 8px 14px; font-size: 1rem; min-height: 2.9em; }
+#narration .stage-name { color: var(--accent); font-weight: 600; margin-right: 8px; }
+footer { padding-bottom: 8px; font-size: 0.72rem; color: var(--muted); }
+
+/* map */
+.zone { fill: var(--soft); opacity: 0.55; }
+.zone-label { font-size: 10px; fill: var(--muted); font-weight: 600; text-anchor: middle; text-transform: uppercase; letter-spacing: 0.06em; }
+.edge { fill: none; stroke: var(--accent); stroke-width: 1.8; opacity: 0.12; transition: opacity 0.3s; }
+.edge.seen { opacity: 0.45; }
+.edge.focus { opacity: 1; stroke-width: 2.4; stroke-dasharray: 7 5; animation: march 0.8s linear infinite; }
+.edge.ref { stroke-dasharray: 3 4; }
+.edge.focus.ref { stroke-dasharray: 7 5; }
+@keyframes march { to { stroke-dashoffset: -12; } }
+.mk { fill: var(--accent); }
+.pulse { fill: var(--accent); }
+.node rect { fill: var(--bg); stroke: var(--border); stroke-width: 1.2; transition: all 0.3s; }
+.node { opacity: 0.22; transition: opacity 0.3s; color: var(--muted); }
+.node.seen { opacity: 1; color: var(--accent); }
+.node.focus { opacity: 1; color: var(--accent); }
+.node.focus rect { fill: var(--accent-tint); stroke: var(--accent); stroke-width: 2.4; }
+.node .l1 { font-size: 10.5px; font-weight: 600; fill: var(--text); text-anchor: middle; }
+.node .l2 { font-size: 8.5px; fill: var(--muted); text-anchor: middle; }
+.node .ic { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hub circle { fill: var(--accent); }
+.node rect.ring, .node.focus rect.ring, .node.seen rect.ring { fill: none; stroke: var(--warn); stroke-width: 3.5; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.node[data-ring="1"] rect.ring { opacity: 1; }
+.node[data-ring="1"] { opacity: 1; }
+.badge { display: none; stroke: var(--accent); stroke-width: 1.6; }
+svg.badges .badge, #storelegend .badge { display: block; }
+.badge.record { fill: var(--accent); }
+.badge.cache { fill: var(--bg); }
+.badge.copy { fill: var(--bg); stroke-dasharray: 2 1.6; }
+#storelegend .lgi svg { vertical-align: -2px; }
+.chead { color: var(--accent); }
+details.moredetail { margin: 10px 0 4px; border-top: 1px solid var(--border); padding-top: 6px; }
+details.moredetail > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.86rem; }
+.sec.key ul { gap: 4px; }
+.edge[data-ring="1"] { stroke: var(--warn); stroke-width: 5; opacity: 1; stroke-dasharray: none; animation: none; }
+.org { font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+.kind { font-size: 0.72rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
+.unmapped { font-size: 0.76rem; color: var(--muted); font-style: italic; margin-top: 4px; }
+
+/* DV additions */
+.tourlink { font-size: 0.78rem; font-weight: 400; color: var(--accent); margin-left: 10px; }
+.node.gone, .edge.gone, .pulse.gone, .zone.gone, .zone-label.gone { display: none; }
+.edge.adv { stroke-dasharray: 6 4; }
+.edge.xonly, .edge.xonly.seen, .edge.xonly.focus { opacity: 0; animation: none; }
+.edge.xonly[data-blocked="1"] { opacity: 1; stroke: var(--warn); stroke-width: 3; stroke-dasharray: 6 4; }
+.xmark { display: none; stroke: var(--warn); stroke-width: 4; stroke-linecap: round; }
+.xmark[data-on="1"] { display: inline; }
+.node.band rect { fill: var(--soft); }
+.node.band .l1 { font-size: 11px; }
+.chip { display: none; }
+svg.zones .chip { display: inline; }
+.chip text { font-size: 7.5px; font-weight: 700; fill: #ffffff; text-anchor: middle; }
+.chip.plant rect, .zl.plant { fill: #b3402a; background: #b3402a; }
+.chip.dmz rect, .zl.dmz { fill: #9a6200; background: #9a6200; }
+.chip.corp rect, .zl.corp { fill: #0a6f7e; background: #0a6f7e; }
+.chip.cloud rect, .zl.cloud { fill: #6a4fb3; background: #6a4fb3; }
+.chip.corpcloud rect, .zl.corpcloud { fill: #4d6b8a; background: #4d6b8a; }
+.zl { display: inline-block; color: #ffffff; font-weight: 700; border-radius: 3px; padding: 0 5px; margin: 0 2px; }
+
+.sec.plain p, .sec.example p { font-size: 0.86rem; line-height: 1.45; }
+.sec.example { border-left: 3px solid var(--border); padding-left: 8px; }
+.calc { border: 1px solid var(--border); border-radius: 5px; padding: 5px 8px; margin: 6px 0; font-size: 0.8rem; line-height: 1.4; opacity: 0.65; }
+.calc.on { opacity: 1; border-color: var(--accent); background: var(--accent-tint); }
+.calc .ctitle { font-weight: 700; color: var(--accent); }
+.calc .cres { font-weight: 700; margin-top: 3px; }
+.calc table { border-collapse: collapse; width: 100%; margin-top: 3px; }
+.calc th, .calc td { border: 1px solid var(--border); padding: 1px 5px; text-align: left; font-size: 0.74rem; }
+.calc tr.total td { font-weight: 700; }
+.calc.closing { opacity: 1; font-weight: 600; }
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  #panel { max-height: none; }
+  body { overflow-y: auto; height: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .node .ring { transition: none; }
+  .edge.focus { animation: none; }
+  .pulse { display: none; }
+  .node, .edge, .node rect { transition: none; }
+}
+body.hide-names .sec.names, body.hide-limits .sec.limits, body.hide-governance .sec.governance,
+body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Data virtualisation guided tour <a class="tourlink" href="../pi/pi-system-guided-tour.html">PI tour</a></h1>
+  <div class="controls" role="group" aria-label="Tour controls">
+    <button id="reset" type="button" title="Start (Home)">Start</button>
+    <button id="prev" type="button" title="Previous (Left arrow)">Previous</button>
+    <span id="progress">Stage 0 of 0</span>
+    <button id="next" type="button" class="primary" title="Next (Right arrow or Space)">Next</button>
+    <button id="all" type="button" title="Last stage (End)">End</button>
+    <select id="jump" aria-label="Jump to stage"></select>
+    <button id="full" type="button" title="Fullscreen (F)">Fullscreen</button>
+  </div>
+  <div class="show" id="show" role="group" aria-label="Sections to show"></div>
+</header>
+
+<main>
+  <div id="left">
+    <div id="map-wrap"><svg id="map" role="img" aria-label="Data virtualisation architecture map"></svg></div>
+    <div id="flows" aria-live="off"></div>
+    <div class="legend" id="storelegend" hidden></div>
+    <div class="legend" id="zonelegend" hidden></div>
+    <div class="legend">Bright = this stage · solid = introduced earlier · faint = not yet · animated arrows = data moving in this stage · dotted two-way line = reference</div>
+  </div>
+  <section id="panel" aria-label="Stage detail" tabindex="-1"></section>
+</main>
+
+<div id="narration" aria-live="polite"></div>
+<footer id="footer"></footer>
+
+<script type="application/json" id="story-data">
+{
+  "edition": "2026-10-18",
+  "contentNote": "Content comes only from the data virtualisation learning series (dv-learning-deck/). The full lessons live in the deck; this tour tells the story.",
+  "intro": {
+    "title": "How to use this tour",
+    "narration": "Press Next to build the picture one stage at a time.",
+    "what": "Each stage adds one part of data virtualisation to the map and explains it in the panel.",
+    "facts": [
+      "Next or Right arrow or Space moves forward; Left arrow goes back; Home and End jump to the ends; F toggles fullscreen.",
+      "On stages with a walkthrough, use the step buttons, or Shift+Right and Shift+Left, to go one step at a time.",
+      "The last five stages gather the recap, misconceptions, decisions, terms and sources."
+    ]
+  },
+  "map": {
+    "width": 852,
+    "height": 610,
+    "node": {
+      "w": 100,
+      "h": 58
+    },
+    "zones": [
+      {
+        "id": "sources",
+        "name": "Sources",
+        "x": 6,
+        "w": 228,
+        "h": 458
+      },
+      {
+        "id": "connect",
+        "name": "Connectors",
+        "x": 252,
+        "w": 104,
+        "h": 416
+      },
+      {
+        "id": "virtual",
+        "name": "Virtual layer",
+        "x": 372,
+        "w": 236,
+        "h": 416
+      },
+      {
+        "id": "access",
+        "name": "Access",
+        "x": 620,
+        "w": 104,
+        "h": 416
+      },
+      {
+        "id": "consumers",
+        "name": "Consumers",
+        "x": 742,
+        "w": 104,
+        "h": 416
+      },
+      {
+        "id": "aiz",
+        "name": "AI platform",
+        "x": 252,
+        "w": 472,
+        "y": 470,
+        "h": 84,
+        "group": "ai"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "site",
+        "x": 60,
+        "y": 100,
+        "icon": "archive",
+        "l1": "Site PI",
+        "l2": "plant record",
+        "zone": "plant"
+      },
+      {
+        "id": "dmz",
+        "x": 60,
+        "y": 214,
+        "icon": "archive",
+        "l1": "DMZ mirror",
+        "l2": "replica",
+        "zone": "dmz"
+      },
+      {
+        "id": "connect",
+        "x": 180,
+        "y": 62,
+        "icon": "cloud",
+        "l1": "CONNECT",
+        "l2": "data services",
+        "zone": "cloud"
+      },
+      {
+        "id": "lims",
+        "x": 180,
+        "y": 138,
+        "icon": "flask",
+        "l1": "LIMS",
+        "l2": "lab results",
+        "zone": "corp"
+      },
+      {
+        "id": "ent",
+        "x": 180,
+        "y": 214,
+        "icon": "enterprise",
+        "l1": "Enterprise PI",
+        "l2": "business zone copy",
+        "zone": "corp"
+      },
+      {
+        "id": "mes",
+        "x": 180,
+        "y": 290,
+        "icon": "controller",
+        "l1": "MES",
+        "l2": "production",
+        "zone": "corp"
+      },
+      {
+        "id": "erp",
+        "x": 180,
+        "y": 366,
+        "icon": "document",
+        "l1": "ERP",
+        "l2": "business",
+        "zone": "corp"
+      },
+      {
+        "id": "lake",
+        "x": 180,
+        "y": 442,
+        "icon": "layers",
+        "l1": "Lakehouse",
+        "l2": "history · ML",
+        "zone": "corpcloud"
+      },
+      {
+        "id": "conn",
+        "x": 304,
+        "y": 252,
+        "icon": "collector",
+        "l1": "Connectors",
+        "l2": "one per source type",
+        "zone": "corp"
+      },
+      {
+        "id": "cat",
+        "x": 550,
+        "y": 62,
+        "icon": "tag",
+        "l1": "Catalogue",
+        "l2": "meaning · origin",
+        "zone": "corp"
+      },
+      {
+        "id": "views",
+        "x": 430,
+        "y": 152,
+        "icon": "grid",
+        "l1": "Virtual views",
+        "l2": "logical tables",
+        "zone": "corp"
+      },
+      {
+        "id": "semantic",
+        "x": 550,
+        "y": 162,
+        "icon": "context",
+        "l1": "Semantic layer",
+        "l2": "one meaning per KPI",
+        "zone": "corp"
+      },
+      {
+        "id": "engine",
+        "x": 430,
+        "y": 252,
+        "icon": "chip",
+        "l1": "Query engine",
+        "l2": "plan · push down",
+        "zone": "corp"
+      },
+      {
+        "id": "sec",
+        "x": 550,
+        "y": 342,
+        "icon": "shield",
+        "l1": "Security and",
+        "l2": "governance",
+        "zone": "corp"
+      },
+      {
+        "id": "cache",
+        "x": 430,
+        "y": 352,
+        "icon": "box",
+        "l1": "Cache",
+        "l2": "temporary copy",
+        "zone": "corp"
+      },
+      {
+        "id": "access",
+        "x": 672,
+        "y": 252,
+        "icon": "api",
+        "l1": "SQL · REST · OData",
+        "l2": "standard interfaces",
+        "zone": "corp"
+      },
+      {
+        "id": "bi",
+        "x": 794,
+        "y": 108,
+        "icon": "consume",
+        "l1": "BI",
+        "l2": "reports",
+        "zone": "corp"
+      },
+      {
+        "id": "apps",
+        "x": 794,
+        "y": 204,
+        "icon": "box",
+        "l1": "Applications",
+        "l2": "services",
+        "zone": "corp"
+      },
+      {
+        "id": "ai",
+        "x": 794,
+        "y": 300,
+        "icon": "chip",
+        "l1": "AI agents",
+        "l2": "copilots",
+        "zone": "corp"
+      },
+      {
+        "id": "ds",
+        "x": 794,
+        "y": 396,
+        "icon": "calculation",
+        "l1": "Data science",
+        "l2": "analysis",
+        "zone": "corp"
+      },
+      {
+        "id": "feature",
+        "x": 304,
+        "y": 520,
+        "icon": "archive",
+        "l1": "Feature store",
+        "l2": "versioned features",
+        "zone": "corp",
+        "group": "ai"
+      },
+      {
+        "id": "registry",
+        "x": 430,
+        "y": 520,
+        "icon": "document",
+        "l1": "Model registry",
+        "l2": "approved models",
+        "zone": "corp",
+        "group": "ai"
+      },
+      {
+        "id": "scoring",
+        "x": 550,
+        "y": 520,
+        "icon": "calculation",
+        "l1": "Scoring service",
+        "l2": "batch · real time",
+        "zone": "corp",
+        "group": "ai"
+      },
+      {
+        "id": "monitor",
+        "x": 672,
+        "y": 520,
+        "icon": "consume",
+        "l1": "Model monitoring",
+        "l2": "drift",
+        "zone": "corp",
+        "group": "ai"
+      },
+      {
+        "id": "band",
+        "type": "band",
+        "x": 426,
+        "y": 592,
+        "w": 836,
+        "l1": "Quality · Observability · Cost · Retention",
+        "group": "band"
+      }
+    ],
+    "edges": [
+      {
+        "id": "p1",
+        "from": "site",
+        "to": "dmz",
+        "label": "Replication outward, through the DMZ"
+      },
+      {
+        "id": "p2",
+        "from": "dmz",
+        "to": "ent",
+        "label": "Copy at the business zone: the enterprise tier"
+      },
+      {
+        "id": "s1",
+        "from": "ent",
+        "to": "conn",
+        "label": "Native access to each source"
+      },
+      {
+        "id": "s2",
+        "from": "connect",
+        "to": "conn",
+        "label": "Native access to each source"
+      },
+      {
+        "id": "s3",
+        "from": "lims",
+        "to": "conn",
+        "label": "Native access to each source"
+      },
+      {
+        "id": "s4",
+        "from": "mes",
+        "to": "conn",
+        "label": "Native access to each source"
+      },
+      {
+        "id": "s5",
+        "from": "erp",
+        "to": "conn",
+        "label": "Native access to each source"
+      },
+      {
+        "id": "s6",
+        "from": "lake",
+        "to": "conn",
+        "label": "Native access to each source"
+      },
+      {
+        "id": "c1",
+        "from": "conn",
+        "to": "engine",
+        "label": "Partial results to the engine"
+      },
+      {
+        "id": "r1",
+        "from": "engine",
+        "to": "views",
+        "label": "Views expanded into the query",
+        "type": "ref"
+      },
+      {
+        "id": "r2",
+        "from": "engine",
+        "to": "cache",
+        "label": "Results reused while fresh enough",
+        "type": "ref"
+      },
+      {
+        "id": "r3",
+        "from": "engine",
+        "to": "sec",
+        "label": "Roles, row and column rules, audit",
+        "type": "ref"
+      },
+      {
+        "id": "r4",
+        "from": "engine",
+        "to": "semantic",
+        "label": "One meaning per KPI",
+        "type": "ref"
+      },
+      {
+        "id": "r5",
+        "from": "cat",
+        "to": "views",
+        "label": "Meaning and origin of each view",
+        "type": "ref"
+      },
+      {
+        "id": "a1",
+        "from": "engine",
+        "to": "access",
+        "label": "One result set"
+      },
+      {
+        "id": "o1",
+        "from": "access",
+        "to": "bi",
+        "label": "SQL (ODBC, JDBC), REST APIs or OData"
+      },
+      {
+        "id": "o2",
+        "from": "access",
+        "to": "apps",
+        "label": "SQL (ODBC, JDBC), REST APIs or OData"
+      },
+      {
+        "id": "o3",
+        "from": "access",
+        "to": "ai",
+        "label": "SQL (ODBC, JDBC), REST APIs or OData"
+      },
+      {
+        "id": "o4",
+        "from": "access",
+        "to": "ds",
+        "label": "SQL (ODBC, JDBC), REST APIs or OData"
+      },
+      {
+        "id": "g1",
+        "from": "ai",
+        "to": "access",
+        "label": "governed tools",
+        "off": 7
+      },
+      {
+        "id": "l1",
+        "from": "lake",
+        "to": "ds",
+        "label": "Long history and ML training data",
+        "via": [
+          [
+            250,
+            457
+          ],
+          [
+            794,
+            457
+          ]
+        ]
+      },
+      {
+        "id": "m1",
+        "from": "lake",
+        "to": "feature",
+        "label": "Versioned history and context"
+      },
+      {
+        "id": "m2",
+        "from": "feature",
+        "to": "registry",
+        "label": "Training on versioned features"
+      },
+      {
+        "id": "m3",
+        "from": "registry",
+        "to": "scoring",
+        "label": "Approved model"
+      },
+      {
+        "id": "m4",
+        "from": "scoring",
+        "to": "ent",
+        "label": "advisory tags",
+        "style": "dashed",
+        "via": [
+          [
+            550,
+            564
+          ],
+          [
+            60,
+            564
+          ],
+          [
+            60,
+            252
+          ],
+          [
+            150,
+            252
+          ]
+        ]
+      },
+      {
+        "id": "m5",
+        "from": "monitor",
+        "to": "scoring",
+        "label": "Drift detection",
+        "type": "ref"
+      },
+      {
+        "id": "nx",
+        "from": "conn",
+        "to": "site",
+        "label": "Never from IT",
+        "xonly": true,
+        "via": [
+          [
+            250,
+            100
+          ]
+        ]
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "overview",
+      "title": "What data virtualisation is",
+      "narration": "One logical view of many sources, fetched when someone asks.",
+      "nodes": [
+        "ent",
+        "connect",
+        "lims",
+        "mes",
+        "erp",
+        "lake",
+        "conn",
+        "engine",
+        "access",
+        "bi",
+        "apps",
+        "ai",
+        "ds"
+      ],
+      "edges": [
+        "s4",
+        "c1",
+        "a1",
+        "o1"
+      ],
+      "remember": "One door to many sources, without copying everything.",
+      "what": "An access layer giving one logical view of many sources, fetching data when queried, so consumers need not know where it lives.",
+      "facts": [
+        {
+          "text": "Data stays in the sources and is fetched when queried.",
+          "origin": "lesson:V1"
+        },
+        {
+          "text": "One governed access point for definitions and security.",
+          "origin": "lesson:V1"
+        },
+        {
+          "text": "It complements the lakehouse; it does not replace it.",
+          "origin": "lesson:V1"
+        }
+      ],
+      "plain": "Our data lives in many systems: PI, the lab system, production systems, finance. Data virtualisation is a layer that lets people ask one question and get one answer, while the data stays where it is. The layer asks each system for its part and combines the answers.",
+      "example": "A flight booking website shows flights from many airlines in one search, without owning planes or copying every timetable. It asks each airline when you search."
+    },
+    {
+      "id": "why-copies",
+      "title": "Why copies hurt",
+      "narration": "Useful questions need data from several systems.",
+      "nodes": [
+        "ent",
+        "connect",
+        "lims",
+        "mes",
+        "erp",
+        "lake"
+      ],
+      "edges": [],
+      "remember": "Copies are slow, stale and costly.",
+      "what": "Copying everything into one store to answer cross-system questions is slow, costly and stale.",
+      "facts": [
+        {
+          "text": "Copies everywhere: the same data stored three or four times.",
+          "origin": "lesson:V1"
+        },
+        {
+          "text": "Stale data: a copy is only as fresh as its last load.",
+          "origin": "lesson:V1"
+        },
+        {
+          "text": "Slow delivery and inconsistent definitions: every new question needs a new pipeline, and each copy has its own 'throughput'.",
+          "origin": "lesson:V1"
+        }
+      ],
+      "plain": "The traditional way is to copy all data into one big store. That works, but every copy must be stored, secured and kept fresh, and each copy often ends up with its own definition of the same number.",
+      "example": "Three reports show three different \"throughput\" figures because each copied the data at a different time and calculated it slightly differently."
+    },
+    {
+      "id": "query-flow",
+      "title": "One question, three systems",
+      "narration": "One question, three systems, one answer.",
+      "nodes": [],
+      "edges": [],
+      "remember": "Ask once; each source does its share; one table comes back.",
+      "what": "Example: throughput (PI) with ore grade (LIMS) per shift (MES).",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: one query",
+        "steps": [
+          {
+            "title": "Ask",
+            "nodes": [
+              "bi",
+              "access",
+              "views"
+            ],
+            "edges": [
+              "o1"
+            ],
+            "caption": "The analyst sends one ordinary SQL question to one virtual view. They do not need to know that the data lives in three systems.",
+            "origin": "lesson:V1"
+          },
+          {
+            "title": "Plan",
+            "nodes": [
+              "engine",
+              "views"
+            ],
+            "edges": [
+              "r1"
+            ],
+            "caption": "The engine finds which systems hold the answer: throughput in PI, ore grade in the lab system, shift times in the production system. It decides what to ask each one.",
+            "origin": "lesson:V1"
+          },
+          {
+            "title": "Push down",
+            "nodes": [
+              "ent",
+              "lims",
+              "mes",
+              "conn"
+            ],
+            "edges": [
+              "s1",
+              "s3",
+              "s4",
+              "c1"
+            ],
+            "caption": "Each source does its own filtering and aggregation, so the engine receives small answers. Moving less data keeps the answer fast and the sources safe.",
+            "origin": "lesson:V1"
+          },
+          {
+            "title": "Combine",
+            "nodes": [
+              "engine"
+            ],
+            "edges": [
+              "c1"
+            ],
+            "caption": "The engine joins the partial results by time and shift. Joins across systems always happen in the engine, because no single source holds all the pieces.",
+            "origin": "lesson:V1"
+          },
+          {
+            "title": "Return",
+            "nodes": [
+              "sec",
+              "engine",
+              "access",
+              "bi"
+            ],
+            "edges": [
+              "r3",
+              "a1",
+              "o1"
+            ],
+            "caption": "Security is applied and one table is returned to the analyst. The user gets one answer while the data stayed where it lives.",
+            "origin": "lesson:V1"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "No bulk copy: data is fetched when needed.",
+          "origin": "lesson:V1"
+        },
+        {
+          "text": "Live or cached: as fresh as the source, unless cached.",
+          "origin": "lesson:V1"
+        }
+      ],
+      "plain": "A user asks one question. The layer works out which systems hold the answer, asks each for only what it needs, joins the pieces and returns one table.",
+      "example": "\"Mill throughput per shift with ore grade\": throughput comes from PI, grade from the lab system, shift times from the production system."
+    },
+    {
+      "id": "styles",
+      "title": "Integration styles",
+      "narration": "Seven ways to get data where it is used.",
+      "nodes": [
+        "engine",
+        "views",
+        "cache",
+        "sec",
+        "cat"
+      ],
+      "edges": [],
+      "remember": "Move a copy, or query data where it lives.",
+      "what": "Seven styles on a spectrum from moving a copy to querying data where it lives.",
+      "chart": {
+        "kind": "spectrum",
+        "title": "Walkthrough: the integration spectrum",
+        "left": "Move a copy",
+        "right": "Query in place",
+        "groups": [
+          {
+            "from": 0,
+            "to": 2,
+            "label": "Move copies"
+          },
+          {
+            "from": 3,
+            "to": 4,
+            "label": "Query in place"
+          }
+        ],
+        "steps": [
+          {
+            "label": "ETL\nELT",
+            "fresh": "hours–day",
+            "title": "ETL and ELT",
+            "caption": "Data is extracted, reshaped and loaded on a schedule; ELT loads raw data first and transforms it inside the target. Freshness is hours to a day, and both make a copy (ELT keeps the raw copy too).",
+            "origin": "lesson:V2"
+          },
+          {
+            "label": "Replication\nCDC",
+            "fresh": "seconds–min",
+            "title": "Replication and CDC",
+            "caption": "An identical copy is kept in another system, or only the changes read from a change log are applied downstream. Freshness is seconds to minutes, and the data is copied.",
+            "origin": "lesson:V2"
+          },
+          {
+            "label": "Streaming",
+            "fresh": "sub-second",
+            "title": "Streaming",
+            "caption": "Each event is published as it happens and consumers subscribe to it. Freshness is sub-second, and the stream retains the events.",
+            "origin": "lesson:V2"
+          },
+          {
+            "label": "Federation",
+            "fresh": "live",
+            "title": "Federation",
+            "caption": "One query runs across several databases and the results are combined. Data is live and nothing is copied.",
+            "origin": "lesson:V2"
+          },
+          {
+            "label": "Virtual-\nisation",
+            "fresh": "live or cached",
+            "title": "Virtualisation",
+            "caption": "Federation plus views, security, caching and a catalogue, managed as one layer. Data is live or cached, and only caches hold copies.",
+            "origin": "lesson:V2"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "Five styles move copies (ETL, ELT, replication, CDC, streaming); two query in place (federation, virtualisation).",
+          "origin": "lesson:V2"
+        },
+        {
+          "text": "Virtualisation = federation + views, security, caching and a catalogue.",
+          "origin": "lesson:V2"
+        }
+      ],
+      "plain": "There are seven ways to get data to where it is used. Five move a copy (ETL, ELT, replication, CDC, streaming); two ask the data where it lives (federation, virtualisation). Good architectures combine them, choosing per user and need.",
+      "example": "Years of history for training a model are copied to the lakehouse; a quick cross-system question goes through the virtual layer."
+    },
+    {
+      "id": "terms",
+      "title": "Warehouse, fabric, mesh, semantic layer",
+      "narration": "Four terms that are constantly confused.",
+      "nodes": [
+        "semantic",
+        "cat",
+        "views",
+        "engine"
+      ],
+      "edges": [
+        "r4",
+        "r5"
+      ],
+      "remember": "Two architectures, one way of organising, one layer.",
+      "what": "They answer different questions (who, find, access, mean) and usually combine.",
+      "facts": [
+        {
+          "text": "Logical data warehouse and data fabric are architectures: stores plus virtual access; metadata and automation.",
+          "origin": "lesson:V3"
+        },
+        {
+          "text": "Data mesh is ownership: domains own data as products.",
+          "origin": "lesson:V3"
+        },
+        {
+          "text": "Semantic layer: shared definitions, one meaning per KPI.",
+          "origin": "lesson:V3"
+        }
+      ],
+      "misconceptions": [
+        {
+          "text": "★ Data mesh is a technology to buy — Reality: an operating model; tools only support it",
+          "origin": "lesson:V3",
+          "kind": "misconception"
+        }
+      ],
+      "plain": "Four terms people often confuse. Two describe architectures (logical data warehouse, data fabric), one describes who owns data (data mesh), one gives every KPI one shared meaning (semantic layer). Data virtualisation is usually the engine inside them.",
+      "example": "The semantic layer defines \"throughput = tonnes ÷ operating hours\" once, so every dashboard and AI agent uses the same formula."
+    },
+    {
+      "id": "engine",
+      "title": "How the engine works",
+      "narration": "The life of one query inside the engine.",
+      "nodes": [],
+      "edges": [],
+      "remember": "Push work down; move as little data as possible.",
+      "what": "One consumer query becomes an efficient plan across many sources.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: the life of a query",
+        "steps": [
+          {
+            "title": "Parse",
+            "nodes": [
+              "engine",
+              "views"
+            ],
+            "edges": [
+              "r1"
+            ],
+            "caption": "The engine reads the question and expands each virtual view into the tables behind it. This turns a business-friendly question into parts the sources understand.",
+            "origin": "lesson:V4"
+          },
+          {
+            "title": "Optimise",
+            "nodes": [
+              "engine"
+            ],
+            "edges": [],
+            "caption": "Using metadata and statistics, the engine decides what each source does and in which order to join. Good plans need current facts about each source.",
+            "origin": "lesson:V4"
+          },
+          {
+            "title": "Push down",
+            "nodes": [
+              "conn",
+              "ent",
+              "lims",
+              "mes"
+            ],
+            "edges": [
+              "s1",
+              "s3",
+              "s4"
+            ],
+            "caption": "Each source receives its part, so filters and aggregation run at the source. This is the most important step for speed and for load on the sources.",
+            "origin": "lesson:V4"
+          },
+          {
+            "title": "Move",
+            "nodes": [
+              "conn",
+              "engine"
+            ],
+            "edges": [
+              "c1"
+            ],
+            "caption": "The partial results travel to the engine. Moving data is the main cost, so a good plan keeps these results small.",
+            "origin": "lesson:V4"
+          },
+          {
+            "title": "Combine",
+            "nodes": [
+              "engine",
+              "sec",
+              "access"
+            ],
+            "edges": [
+              "r3",
+              "a1"
+            ],
+            "caption": "The engine joins and finishes the remaining work, then applies security. The consumer receives one result set.",
+            "origin": "lesson:V4"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "Pushdown does the work at the source.",
+          "origin": "lesson:V4"
+        },
+        {
+          "text": "Moving data is the main cost.",
+          "origin": "lesson:V4"
+        },
+        {
+          "text": "Cross-source joins always run in the engine.",
+          "origin": "lesson:V4"
+        }
+      ],
+      "plain": "The engine reads the question, plans which system does what, sends each system its part, collects the small answers, combines them and applies security. Moving data is the slowest part, so a good plan moves as little as possible.",
+      "example": "Like a project manager who gives each specialist only their task and assembles the results, instead of doing all the work alone."
+    },
+    {
+      "id": "pushdown",
+      "title": "Pushdown in numbers",
+      "narration": "The most important idea, in one picture.",
+      "nodes": [
+        "ent",
+        "conn",
+        "engine"
+      ],
+      "edges": [
+        "s1",
+        "c1"
+      ],
+      "remember": "Ask the source to do the work.",
+      "what": "Question: hourly average of one tag, last week.",
+      "chart": {
+        "kind": "two-plans",
+        "title": "Walkthrough: two plans for one question",
+        "plans": [
+          {
+            "name": "Plan A · summary computed in PI",
+            "values": 168,
+            "label": "≈ 168 values moved (illustrative)"
+          },
+          {
+            "name": "Plan B · raw values pulled, averaged in the engine",
+            "values": 60000,
+            "label": "≈ 60,000 values moved (illustrative)"
+          }
+        ],
+        "steps": [
+          {
+            "title": "Plan A",
+            "show": [
+              0
+            ],
+            "caption": "PI computes the hourly averages and sends about 168 values (7 days × 24 hours). The work happens at the source and little data moves.",
+            "origin": "lesson:V4",
+            "calc": [
+              "a"
+            ]
+          },
+          {
+            "title": "Plan B",
+            "show": [
+              1
+            ],
+            "caption": "The engine pulls about 60,000 raw values and averages them itself. PI does far more reading and far more data crosses the network.",
+            "origin": "lesson:V4",
+            "calc": [
+              "b"
+            ]
+          },
+          {
+            "title": "Compare",
+            "show": [
+              0,
+              1
+            ],
+            "caption": "Same question, very different load on PI. Plan B moves about 360 times more data, for the same answer.",
+            "origin": "lesson:V4",
+            "calc": [
+              "a",
+              "b"
+            ]
+          }
+        ],
+        "note": "Numbers are illustrative.",
+        "calc": [
+          {
+            "id": "a",
+            "lines": [
+              "Plan A: one average per hour → 24 hours × 7 days = 168 values."
+            ]
+          },
+          {
+            "id": "b",
+            "lines": [
+              "Plan B: if PI stores about one value every 10 seconds → 6 per minute × 60 × 24 × 7 = about 60,000 values (illustrative)."
+            ]
+          }
+        ],
+        "closing": "Plan B moves about 360 times more data, for the same answer."
+      },
+      "facts": [
+        {
+          "text": "Capability negotiation: the engine asks each connector what its source can do.",
+          "origin": "lesson:V4"
+        }
+      ],
+      "misconceptions": [
+        {
+          "text": "★ The engine makes slow sources fast — Reality: it can only push down what the source supports",
+          "origin": "lesson:V4",
+          "kind": "misconception"
+        }
+      ],
+      "plain": "Pushdown means asking the source to do the calculation and send only the result. It keeps answers fast and protects PI from heavy load, which matters when many people and AI agents ask questions at once.",
+      "example": "Asking your bank for last month's total spending, instead of having every transaction sent to you to add up yourself."
+    },
+    {
+      "id": "time-series",
+      "title": "Four ways to read a tag",
+      "narration": "Time series are irregular, so the same tag can be read four ways.",
+      "nodes": [
+        "ent"
+      ],
+      "edges": [],
+      "remember": "Same tag, four answers: pick the one that fits the use.",
+      "what": "Sample: one tag over 60 minutes, flat at 10 then changing near 20.",
+      "chart": {
+        "points": [
+          [
+            0,
+            10.0
+          ],
+          [
+            49,
+            10.0
+          ],
+          [
+            50,
+            20.0
+          ],
+          [
+            52,
+            20.1
+          ],
+          [
+            54,
+            19.9
+          ],
+          [
+            56,
+            20.0
+          ],
+          [
+            58,
+            20.2
+          ]
+        ],
+        "tmax": 60,
+        "vmin": 8,
+        "vmax": 22,
+        "vticks": [
+          10,
+          15,
+          20
+        ],
+        "note": "Few stored points while flat, many while changing: this is how compression stores data.",
+        "kind": "retrieval-types",
+        "title": "Walkthrough: recorded, interpolated, plot, summary",
+        "every": 10,
+        "plot": [
+          0,
+          1,
+          2,
+          4,
+          6
+        ],
+        "steps": [
+          {
+            "kind": "recorded",
+            "title": "Recorded",
+            "caption": "You get exactly the 7 stored events, as PI recorded them. Use them for audit and detail; over long periods they are irregular and can be huge.",
+            "origin": "lesson:V7",
+            "calc": [
+              "rec"
+            ]
+          },
+          {
+            "kind": "interpolated",
+            "title": "Interpolated every 10 minutes",
+            "caption": "PI calculates values at fixed times between stored events; after the last event the last value is held. Use them to align tags and build ML features, remembering they are calculated, not measured.",
+            "origin": "lesson:V7",
+            "calc": [
+              "int"
+            ]
+          },
+          {
+            "kind": "plot",
+            "title": "Plot values",
+            "caption": "PI returns only the points needed to draw the trend on screen (illustrative). They are for visualisation, not for calculation.",
+            "origin": "lesson:V7",
+            "calc": [
+              "plot"
+            ]
+          },
+          {
+            "kind": "summary",
+            "title": "One hourly summary",
+            "caption": "PI computes one value per interval: here the time-weighted average for the hour, 11.8. Use summaries for KPIs and dashboards.",
+            "origin": "lesson:V7",
+            "calc": [
+              "sum"
+            ]
+          }
+        ],
+        "calc": [
+          {
+            "id": "rec",
+            "lines": [
+              "Recorded: the 7 stored values: 0 → 10.0, 49 → 10.0, 50 → 20.0, 52 → 20.1, 54 → 19.9, 56 → 20.0, 58 → 20.2."
+            ]
+          },
+          {
+            "id": "int",
+            "lines": [
+              "Interpolated every 10 minutes: 0 → 10.0, 10 → 10.0, 20 → 10.0, 30 → 10.0, 40 → 10.0, 50 → 20.0, 60 → 20.2."
+            ]
+          },
+          {
+            "id": "plot",
+            "lines": [
+              "Plot: just the points needed to draw the line on screen."
+            ]
+          },
+          {
+            "id": "sum",
+            "lines": [
+              "Summary: one number for the hour, the time-weighted average 11.8."
+            ]
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "Interpolated values are calculated, not measured.",
+          "origin": "lesson:V7"
+        },
+        {
+          "text": "Step tags (states, set points) must not be interpolated.",
+          "origin": "lesson:V7"
+        },
+        {
+          "text": "Store and compute in UTC; convert for display.",
+          "origin": "lesson:V7"
+        }
+      ],
+      "plain": "PI does not store a value every second; it stores a value when the signal changes. So the same tag can be read four ways: exactly what was stored, values calculated at regular times, points to draw a trend, or one summary per period. Each suits a different use.",
+      "example": "A data scientist needs regular 10-minute values to compare tags; a dashboard needs one average per hour."
+    },
+    {
+      "id": "time-weighting",
+      "title": "Simple versus time-weighted average",
+      "narration": "Same seven values, two very different averages.",
+      "nodes": [
+        "ent",
+        "engine"
+      ],
+      "edges": [],
+      "remember": "Weight each value by how long it lasted.",
+      "what": "Average the same sample hour two ways.",
+      "chart": {
+        "points": [
+          [
+            0,
+            10.0
+          ],
+          [
+            49,
+            10.0
+          ],
+          [
+            50,
+            20.0
+          ],
+          [
+            52,
+            20.1
+          ],
+          [
+            54,
+            19.9
+          ],
+          [
+            56,
+            20.0
+          ],
+          [
+            58,
+            20.2
+          ]
+        ],
+        "tmax": 60,
+        "vmin": 8,
+        "vmax": 22,
+        "vticks": [
+          10,
+          15,
+          20
+        ],
+        "note": "Few stored points while flat, many while changing: this is how compression stores data.",
+        "kind": "average-compare",
+        "title": "Walkthrough: two averages",
+        "steps": [
+          {
+            "show": [
+              "simple"
+            ],
+            "title": "Simple average",
+            "caption": "Mean of the 7 stored values: 120.2 ÷ 7 = 17.2. This is what ordinary SQL AVG() does: every stored value counts the same.",
+            "origin": "lesson:V7",
+            "calc": [
+              "simple"
+            ]
+          },
+          {
+            "show": [
+              "tw"
+            ],
+            "title": "Time-weighted average",
+            "caption": "Area under the line (linear between points, last value held to minute 60) ÷ 60 minutes = 11.8. Each value counts for as long as it lasted, which is what PI does.",
+            "origin": "lesson:V7",
+            "calc": [
+              "tw"
+            ]
+          },
+          {
+            "show": [
+              "simple",
+              "tw"
+            ],
+            "title": "Why they differ",
+            "caption": "The value was near 10 for 49 minutes; the simple average is pulled up by the busy last 11 minutes. Push averages down to PI to get the time-weighted answer.",
+            "origin": "lesson:V7",
+            "calc": [
+              "simple",
+              "tw"
+            ]
+          }
+        ],
+        "calc": [
+          {
+            "id": "simple",
+            "title": "Simple average (what ordinary SQL does)",
+            "lines": [
+              "Add the 7 stored values, divide by 7."
+            ],
+            "after": [
+              "(10.0 + 10.0 + 20.0 + 20.1 + 19.9 + 20.0 + 20.2) ÷ 7 = 120.2 ÷ 7 = 17.2"
+            ]
+          },
+          {
+            "id": "tw",
+            "title": "Time-weighted average (what PI does)",
+            "lines": [
+              "Each value × how many minutes it lasted."
+            ],
+            "table": {
+              "head": [
+                "Period (min)",
+                "Minutes",
+                "Average value",
+                "Value × minutes"
+              ],
+              "total": true,
+              "rows": [
+                [
+                  "0–49",
+                  "49",
+                  "10.0",
+                  "490.0"
+                ],
+                [
+                  "49–50",
+                  "1",
+                  "15.0 (rising 10 → 20)",
+                  "15.0"
+                ],
+                [
+                  "50–52",
+                  "2",
+                  "20.05",
+                  "40.1"
+                ],
+                [
+                  "52–54",
+                  "2",
+                  "20.0",
+                  "40.0"
+                ],
+                [
+                  "54–56",
+                  "2",
+                  "19.95",
+                  "39.9"
+                ],
+                [
+                  "56–58",
+                  "2",
+                  "20.1",
+                  "40.2"
+                ],
+                [
+                  "58–60",
+                  "2",
+                  "20.2 (last value held)",
+                  "40.4"
+                ],
+                [
+                  "Total",
+                  "60",
+                  "",
+                  "705.6"
+                ]
+              ]
+            },
+            "after": [
+              "705.6 ÷ 60 minutes = 11.8"
+            ]
+          }
+        ],
+        "closing": "The simple average counts each stored value equally, so the five values from the busy last 11 minutes outweigh the flat 49 minutes."
+      },
+      "misconceptions": [
+        {
+          "text": "★ AVG() in SQL gives the average — Reality: only for regular sampling; continuous signals need time-weighting",
+          "origin": "lesson:V7",
+          "kind": "misconception"
+        }
+      ],
+      "plain": "Because PI stores few values when a signal is flat and many when it changes, an ordinary average gives wrong answers. The correct average weights each value by how long it lasted. PI calculates this correctly, which is another reason to push the calculation down to PI.",
+      "example": "The two calculations below the chart, worked through in full: first the simple average, then the time-weighted average."
+    },
+    {
+      "id": "pi-access",
+      "title": "Reading PI safely",
+      "narration": "Which door into PI, in which zone.",
+      "zones": true,
+      "nodes": [],
+      "edges": [],
+      "remember": "The virtual layer never reaches into the plant network.",
+      "what": "The routes a virtual layer uses into PI, and how zones and load apply.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: where the layer reads PI",
+        "steps": [
+          {
+            "title": "Read the enterprise tier",
+            "nodes": [
+              "conn",
+              "ent"
+            ],
+            "edges": [
+              "s1"
+            ],
+            "caption": "Allowed: the virtual layer reads Enterprise PI in the corporate zone. That server holds a copy sent outward from the plant, so reading it never touches the control network.",
+            "origin": "lesson:P1"
+          },
+          {
+            "title": "Never site PI from IT",
+            "nodes": [
+              "conn",
+              "site"
+            ],
+            "edges": [],
+            "caption": "Crossed out: a path from the virtual layer to site PI would bring IT into the plant network. Speed is never a reason to cross zones.",
+            "origin": "lesson:P1",
+            "blocked": [
+              "nx"
+            ]
+          },
+          {
+            "title": "Diode site",
+            "nodes": [
+              "site",
+              "dmz",
+              "ent"
+            ],
+            "edges": [
+              "p1",
+              "p2"
+            ],
+            "caption": "Diode sites: copies only. Site PI sends its data outward; the layer reads the copy, never the plant.",
+            "origin": "lesson:P1"
+          },
+          {
+            "title": "Request summaries",
+            "nodes": [
+              "ent",
+              "conn",
+              "engine"
+            ],
+            "edges": [
+              "s1",
+              "c1"
+            ],
+            "caption": "Request summaries, not raw values: PI computes them. This keeps load low, and PI SQL query load lands on the AF server, so size it accordingly.",
+            "origin": "lesson:P1"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "Read the enterprise tier, never site PI from IT.",
+          "origin": "lesson:P1"
+        },
+        {
+          "text": "PI SQL query load lands on the AF server, where the RTQP engine runs.",
+          "origin": "lesson:P1"
+        },
+        {
+          "text": "Serve long history from the lakehouse.",
+          "origin": "lesson:P1"
+        }
+      ],
+      "plain": "The network is divided into zones by trust: plant, DMZ, corporate, cloud. Site PI sends a copy outward to the enterprise PI server. The virtual layer reads that copy, never the plant, so no corporate user or malware can reach the control network.",
+      "example": "Like a company mail room: couriers deliver there, staff collect from there, and neither walks into the other's area."
+    },
+    {
+      "id": "security",
+      "title": "Identity and security",
+      "narration": "Follow one user's identity from sign-in to audit.",
+      "zones": true,
+      "nodes": [],
+      "edges": [],
+      "remember": "One door: who, what, and a record of both.",
+      "what": "A virtual layer is the single door to many sources, so its controls decide who sees what.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: the identity chain",
+        "steps": [
+          {
+            "title": "Sign in",
+            "nodes": [
+              "bi"
+            ],
+            "edges": [],
+            "caption": "The user signs in with Entra ID or AD, with MFA and conditional access. From here on, every query carries this user's identity.",
+            "origin": "lesson:V5"
+          },
+          {
+            "title": "Token",
+            "nodes": [
+              "bi",
+              "access"
+            ],
+            "edges": [
+              "o1"
+            ],
+            "caption": "A token carries the user's groups to the layer. The layer now knows who is asking, not just which application.",
+            "origin": "lesson:V5"
+          },
+          {
+            "title": "Layer rules",
+            "nodes": [
+              "sec",
+              "engine"
+            ],
+            "edges": [
+              "r3"
+            ],
+            "caption": "Roles or attributes decide which views the user may use; row and column rules filter and mask. A process engineer sees only their own site, and cost columns are hidden.",
+            "origin": "lesson:V5"
+          },
+          {
+            "title": "Query",
+            "nodes": [
+              "engine",
+              "conn",
+              "ent"
+            ],
+            "edges": [
+              "c1",
+              "s1"
+            ],
+            "caption": "The query reaches Enterprise PI, either as the user (Kerberos delegation) or through a service account with roles enforced in the layer. Either way, the user's rights decide what comes back.",
+            "origin": "lesson:V5"
+          },
+          {
+            "title": "Audit",
+            "nodes": [
+              "sec"
+            ],
+            "edges": [
+              "r3"
+            ],
+            "caption": "Every query is logged with the real user. This gives compliance evidence; a single shared account would hide who asked.",
+            "origin": "lesson:V5"
+          }
+        ]
+      },
+      "misconceptions": [
+        {
+          "text": "★ A service account is simplest — Reality: every query looks like one user; the layer must enforce roles and audit the real user",
+          "origin": "lesson:V5",
+          "kind": "misconception"
+        }
+      ],
+      "plain": "Every query carries the user's identity. The user signs in, the layer checks their role, filters the rows and columns they may see, and logs the query. A single shared account would hide who asked.",
+      "example": "A process engineer at one site sees only that site's data; cost columns are hidden from them."
+    },
+    {
+      "id": "governance",
+      "title": "Governance for use",
+      "narration": "Who owns each number, what it means, and who may see it.",
+      "nodes": [
+        "cat",
+        "views",
+        "sec",
+        "semantic"
+      ],
+      "edges": [
+        "r5",
+        "r3"
+      ],
+      "remember": "Owned data products with contracts.",
+      "what": "Governance for using data: ownership, contracts, catalogue, lineage, classification, quality, retention and compliance.",
+      "facts": [
+        {
+          "text": "Each data product has an owner and a contract: schema, meaning, freshness, quality, SLA.",
+          "origin": "lesson:V5"
+        },
+        {
+          "text": "Catalogue and lineage trace a dashboard number back to its PI tag.",
+          "origin": "lesson:V5"
+        },
+        {
+          "text": "Classification: sensitivity labels drive access rules.",
+          "origin": "lesson:V5"
+        }
+      ],
+      "plain": "Shared data needs owners and rules: who is responsible, what each field means, how fresh and good it is, who may use it. These are written as data products with contracts and listed in a catalogue.",
+      "example": "\"Hourly throughput per mill\": owned by operations, refreshed hourly, quality checked, approved for dashboards and AI agents."
+    },
+    {
+      "id": "protection",
+      "title": "Protecting the sources",
+      "narration": "A shared layer concentrates load; one runaway query can slow PI for operators.",
+      "nodes": [],
+      "edges": [],
+      "remember": "No single query can harm PI.",
+      "what": "Every query follows a protected path.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: the protected path",
+        "steps": [
+          {
+            "title": "Check",
+            "nodes": [
+              "sec",
+              "engine"
+            ],
+            "edges": [
+              "r3"
+            ],
+            "caption": "Guardrails check the time range, the number of tags and the user's role. A query that is too large is stopped before it reaches PI.",
+            "origin": "lesson:V6"
+          },
+          {
+            "title": "Cache",
+            "nodes": [
+              "cache",
+              "engine"
+            ],
+            "edges": [
+              "r2"
+            ],
+            "caption": "If a recent enough answer is in the cache, it is returned without touching the source. Cache lifetime is set per view, by how fresh the data must be.",
+            "origin": "lesson:V6"
+          },
+          {
+            "title": "Queue",
+            "nodes": [
+              "engine"
+            ],
+            "edges": [],
+            "caption": "The query joins its workload class and waits for capacity under a concurrency limit. This stops one team or one AI agent slowing everyone else.",
+            "origin": "lesson:V6"
+          },
+          {
+            "title": "Push down",
+            "nodes": [
+              "conn",
+              "ent"
+            ],
+            "edges": [
+              "s1",
+              "c1"
+            ],
+            "caption": "Summaries are computed in PI, so only small results move. PI and the AF server are usually the bottleneck, so this protects them.",
+            "origin": "lesson:V6"
+          },
+          {
+            "title": "Log",
+            "nodes": [
+              "sec"
+            ],
+            "edges": [
+              "r3"
+            ],
+            "caption": "The user, cost and duration are recorded. Monitoring from day one finds heavy queries early.",
+            "origin": "lesson:V6"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "PI and the AF server are the bottleneck, not the engine.",
+          "origin": "lesson:V6"
+        },
+        {
+          "text": "AI agents loop and parallelise: they need quotas.",
+          "origin": "lesson:V6"
+        },
+        {
+          "text": "Caching is a decision per view, not a switch.",
+          "origin": "lesson:V6"
+        }
+      ],
+      "plain": "One shared layer concentrates load on the sources. Each query passes checks: is it allowed and not too large, can a recent cached answer be reused, is there capacity, can PI do the work, and is it logged.",
+      "example": "A query for ten years of raw values across 5,000 tags is stopped with a message to use the lakehouse instead."
+    },
+    {
+      "id": "hosting",
+      "title": "Where the layer runs",
+      "narration": "Placement decides which zones queries cross.",
+      "zones": true,
+      "nodes": [
+        "conn",
+        "views",
+        "cat",
+        "engine",
+        "semantic",
+        "cache",
+        "sec",
+        "access"
+      ],
+      "edges": [],
+      "remember": "Default place: the corporate zone.",
+      "what": "Where the layer runs decides which zones queries cross, latency to sources, resilience and who operates it.",
+      "facts": [
+        {
+          "text": "On-premises, cloud, hybrid or managed: each trades residency, latency and operating effort.",
+          "origin": "lesson:V6.1"
+        },
+        {
+          "text": "Never next to site PI: speed is never a reason to cross zones.",
+          "origin": "lesson:V6.1"
+        },
+        {
+          "text": "Production needs clustering: several engine nodes behind a load balancer.",
+          "origin": "lesson:V6.1"
+        }
+      ],
+      "plain": "The layer can run in our data centre, in the cloud, or both. Its default place is the corporate zone, reading the enterprise PI copy. It must never sit next to the plant's PI servers, and production use needs more than one server for resilience.",
+      "example": "A cloud layer reaches on-premises data through a gateway that connects outward, so nothing from the internet connects inward."
+    },
+    {
+      "id": "context",
+      "title": "Industrial context",
+      "narration": "Data is only useful across sources when it carries context.",
+      "nodes": [
+        "ent",
+        "semantic",
+        "views",
+        "cat"
+      ],
+      "edges": [
+        "r4",
+        "r5"
+      ],
+      "remember": "Shared keys first.",
+      "what": "Patterns that give industrial data shared structure and context: asset, process, event.",
+      "facts": [
+        {
+          "text": "Context makes cross-source data useful.",
+          "origin": "lesson:V8"
+        },
+        {
+          "text": "ISA-95 and AF give structure; UNS and OPC UA move live context.",
+          "origin": "lesson:V8"
+        },
+        {
+          "text": "Shared keys matter more than one perfect model.",
+          "origin": "lesson:V8"
+        }
+      ],
+      "plain": "Tag names like \"PI101_PV\" mean nothing to most users. Asset models and standards add context: which pump, which plant, which unit. Shared keys between systems let data be joined reliably.",
+      "example": "\"PI101_PV\" becomes \"Plant 2 › Pump P-101 › Discharge pressure (bar)\", which links to the same pump's work orders."
+    },
+    {
+      "id": "products",
+      "title": "Product landscape",
+      "narration": "Many products claim virtualisation; they differ greatly for PI.",
+      "nodes": [
+        "connect",
+        "conn",
+        "engine"
+      ],
+      "edges": [
+        "s2",
+        "c1"
+      ],
+      "remember": "A short PoC on real PI queries beats any demo.",
+      "what": "Product categories for virtual and federated access, including AVEVA-native routes.",
+      "facts": [
+        {
+          "text": "Six categories, from virtualisation platforms to AVEVA-native routes.",
+          "origin": "lesson:V9"
+        },
+        {
+          "text": "Choose by PI pushdown and governance fit, proven in a PoC.",
+          "origin": "lesson:V9"
+        },
+        {
+          "text": "CONNECT shares contextualised PI data to Databricks via Delta Sharing; verify other integrations.",
+          "origin": "lesson:V9"
+        }
+      ],
+      "plain": "Many products claim to do virtualisation, in six categories: from dedicated platforms to features in data platforms and AVEVA's own routes. The right choice is proven by testing real PI queries, not by feature lists.",
+      "example": "A proof of concept checks whether the product really asks PI for hourly averages instead of pulling raw values."
+    },
+    {
+      "id": "deciding",
+      "title": "Virtualise or copy",
+      "narration": "Five questions, in order, per consumer and need.",
+      "nodes": [],
+      "edges": [],
+      "remember": "Query small and recent live; copy big and historical.",
+      "what": "Ask the five questions in order; the first yes decides.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: five questions",
+        "steps": [
+          {
+            "title": "Path allowed?",
+            "nodes": [
+              "site",
+              "dmz"
+            ],
+            "edges": [
+              "p1"
+            ],
+            "caption": "Can we reach the data at all? A source behind a diode or reachable only in OT can only be copied.",
+            "origin": "lesson:V10"
+          },
+          {
+            "title": "Big history?",
+            "nodes": [
+              "lake"
+            ],
+            "edges": [],
+            "caption": "Is it years of history or ML training? Then materialise it in the lakehouse rather than query the sources live.",
+            "origin": "lesson:V10"
+          },
+          {
+            "title": "Reproducible?",
+            "nodes": [
+              "lake"
+            ],
+            "edges": [],
+            "caption": "Must the result be reproducible, for audit or training sets? Then keep a versioned copy.",
+            "origin": "lesson:V10"
+          },
+          {
+            "title": "Fresh and cross-source?",
+            "nodes": [
+              "ent",
+              "lims",
+              "mes",
+              "engine"
+            ],
+            "edges": [
+              "s1",
+              "s3",
+              "s4"
+            ],
+            "caption": "Is it fresh, cross-system and modest in size? Then virtualise, as long as the sources can cope.",
+            "origin": "lesson:V10"
+          },
+          {
+            "title": "Repeated?",
+            "nodes": [
+              "cache"
+            ],
+            "edges": [
+              "r2"
+            ],
+            "caption": "Is it repeated often? Then cache it, or keep a materialised aggregate.",
+            "origin": "lesson:V10"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "Most estates use both: query live and copy.",
+          "origin": "lesson:V10"
+        }
+      ],
+      "plain": "Five questions, asked in order, decide the approach. Can we reach the data at all? Is it years of history? Must the result be reproducible? Is it fresh, cross-system and modest in size? Is it repeated often?",
+      "example": "Training a model on five years of data → copy. A shift supervisor's live cross-system view → virtualise. A popular daily report → cache."
+    },
+    {
+      "id": "ai",
+      "title": "AI on operational data",
+      "narration": "Models and agents need a platform, not just a model.",
+      "reveal": [
+        "ai"
+      ],
+      "nodes": [],
+      "edges": [],
+      "remember": "AI outputs are advisory and traceable.",
+      "what": "Platform capabilities to build, run and govern ML models and AI agents, safely.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: models and agents",
+        "steps": [
+          {
+            "title": "Lakehouse",
+            "nodes": [
+              "lake",
+              "feature"
+            ],
+            "edges": [
+              "m1"
+            ],
+            "caption": "Versioned PI history, AF context, Event Frames and work orders become features: time-aligned, time-weighted inputs for models. Training on versioned copies keeps results reproducible.",
+            "origin": "lesson:V11"
+          },
+          {
+            "title": "Feature store",
+            "nodes": [
+              "feature",
+              "registry"
+            ],
+            "edges": [
+              "m2"
+            ],
+            "caption": "The feature store serves the same features for training and for scoring. This avoids training-serving skew, where a model sees different inputs in production.",
+            "origin": "lesson:V11"
+          },
+          {
+            "title": "Model registry",
+            "nodes": [
+              "registry",
+              "scoring"
+            ],
+            "edges": [
+              "m3"
+            ],
+            "caption": "Candidate models are versioned, approved and their lineage recorded. Only approved models go on to scoring.",
+            "origin": "lesson:V11"
+          },
+          {
+            "title": "Scoring service",
+            "nodes": [
+              "scoring",
+              "monitor"
+            ],
+            "edges": [
+              "m5"
+            ],
+            "caption": "The scoring service runs approved models in batch or real time, and monitoring watches for drift. When accuracy drops, the model is retrained.",
+            "origin": "lesson:V11"
+          },
+          {
+            "title": "Advisory tags",
+            "nodes": [
+              "scoring",
+              "ent"
+            ],
+            "edges": [
+              "m4"
+            ],
+            "caption": "Predictions go back to Enterprise PI as advisory tags for operators. Operators see the warning and decide.",
+            "origin": "lesson:V11"
+          },
+          {
+            "title": "Governed tools",
+            "nodes": [
+              "ai",
+              "access"
+            ],
+            "edges": [
+              "g1"
+            ],
+            "caption": "AI agents call governed tools with the user's permissions and quotas, and answer with evidence. They never query raw systems directly.",
+            "origin": "lesson:V11"
+          },
+          {
+            "title": "Advisory only",
+            "nodes": [
+              "ai",
+              "scoring"
+            ],
+            "edges": [],
+            "caption": "Advisory only: nothing writes to control systems. Humans approve every action.",
+            "origin": "lesson:V11"
+          }
+        ]
+      },
+      "facts": [
+        {
+          "text": "Train on versioned copies, not live views.",
+          "origin": "lesson:V11"
+        },
+        {
+          "text": "Monitor models for drift.",
+          "origin": "lesson:V11"
+        },
+        {
+          "text": "Agents act with the user's permissions.",
+          "origin": "lesson:V11"
+        }
+      ],
+      "plain": "AI needs a small platform: prepared inputs (feature store), approved model versions (registry), a service that runs models (scoring) and checks that models stay accurate (monitoring). AI agents use the same governed door, with the user's permissions, and their outputs are advice only.",
+      "example": "A model predicts pump failure; operators see the warning and decide. Nothing is changed in the control system automatically."
+    },
+    {
+      "id": "platform",
+      "title": "Cross-cutting disciplines",
+      "narration": "Platforms fail quietly: data degrades, pipelines break, costs creep.",
+      "reveal": [
+        "band"
+      ],
+      "nodes": [
+        "band"
+      ],
+      "edges": [],
+      "remember": "Trusted, visible and affordable, end to end.",
+      "what": "Four disciplines across every stage of the data journey.",
+      "facts": [
+        {
+          "text": "Quality, observability, cost and retention run across the whole journey.",
+          "origin": "lesson:V12"
+        },
+        {
+          "text": "Measure freshness, quality score, latency and cost per data product.",
+          "origin": "lesson:V12"
+        },
+        {
+          "text": "Cost is designed in from the start, not added later.",
+          "origin": "lesson:V12"
+        }
+      ],
+      "plain": "Platforms fail quietly unless four things are managed throughout: data quality, monitoring of pipelines and models, cost, and how long data is kept.",
+      "example": "A dashboard shows stale data for a week because a pipeline failed silently; monitoring would have raised an alert within minutes."
+    },
+    {
+      "id": "recap",
+      "title": "Recap: one sentence per part",
+      "narration": "Say each sentence without looking.",
+      "nodes": "all",
+      "edges": [
+        "s1",
+        "s3",
+        "s4",
+        "c1",
+        "a1",
+        "o1"
+      ],
+      "remember": "One governed door; work pushed down; sources protected.",
+      "sections": [
+        {
+          "title": "One sentence per part",
+          "items": [
+            {
+              "text": "Foundations: one governed view of many sources, queried in place; federation plus views, security, caching and a catalogue.",
+              "origin": "lesson:V1"
+            },
+            {
+              "text": "Engine: push filtering and aggregation down to each source; moving data is the main cost.",
+              "origin": "lesson:V4"
+            },
+            {
+              "text": "Time series: time-weighting, alignment and UTC; push that work into PI.",
+              "origin": "lesson:V7"
+            },
+            {
+              "text": "PI access: read the enterprise tier, request summaries, take long history from the lakehouse.",
+              "origin": "lesson:P1"
+            },
+            {
+              "text": "Controls: identity, roles and audit; owned products; guardrails; a home in the corporate zone.",
+              "origin": "lesson:V5"
+            },
+            {
+              "text": "Deciding: shared keys, a PI PoC, then query small and recent live, copy big and historical.",
+              "origin": "lesson:V10"
+            },
+            {
+              "text": "AI and platform: advisory and traceable AI; quality, observability, cost and retention everywhere.",
+              "origin": "lesson:V11"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "misconceptions",
+      "title": "Summary: misconceptions",
+      "narration": "One starred misconception per lesson.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "Expect these challenges first.",
+      "sections": [
+        {
+          "title": "Myth → reality",
+          "cls": "limits",
+          "items": [
+            {
+              "text": "V1 · Always faster than copying → as fast as the slowest source.",
+              "origin": "lesson:V1"
+            },
+            {
+              "text": "V2 · Federation = virtualisation → it adds model, security, caching, catalogue.",
+              "origin": "lesson:V2"
+            },
+            {
+              "text": "V3 · Data mesh is a technology → an operating model.",
+              "origin": "lesson:V3"
+            },
+            {
+              "text": "V4 · The engine makes slow sources fast → it only pushes down what sources support.",
+              "origin": "lesson:V4"
+            },
+            {
+              "text": "V7 · AVG() gives the average → use time-weighting.",
+              "origin": "lesson:V7"
+            },
+            {
+              "text": "P1 · Point the layer at site PI → read the enterprise tier.",
+              "origin": "lesson:P1"
+            },
+            {
+              "text": "V5 · A service account is simplest → the layer must enforce roles and audit.",
+              "origin": "lesson:V5"
+            },
+            {
+              "text": "V6 · Cache everything → caching is decided per view.",
+              "origin": "lesson:V6"
+            },
+            {
+              "text": "V6.1 · Put the engine next to site PI → zone violation.",
+              "origin": "lesson:V6.1"
+            },
+            {
+              "text": "V8 · One model fits every use → different views of shared keys.",
+              "origin": "lesson:V8"
+            },
+            {
+              "text": "V9 · Choose by feature list → choose by a PoC on PI.",
+              "origin": "lesson:V9"
+            },
+            {
+              "text": "V10 · Virtualise everything → history and ML need copies.",
+              "origin": "lesson:V10"
+            },
+            {
+              "text": "V11 · Train on live views → train on versioned copies.",
+              "origin": "lesson:V11"
+            },
+            {
+              "text": "V12 · Optimise cost later → design for cost from the start.",
+              "origin": "lesson:V12"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decisions",
+      "title": "Summary: decisions",
+      "narration": "Decisions to recognise now and make in Phase 3, with discovery evidence.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "Recognise now; decide later with evidence.",
+      "sections": [
+        {
+          "title": "Decisions by lesson",
+          "cls": "governance",
+          "items": [
+            {
+              "text": "V1 · where to virtualise; who uses it; caching policy; model ownership",
+              "origin": "lesson:V1"
+            },
+            {
+              "text": "V3 · ownership model; KPI definitions; metadata strategy; role of virtualisation",
+              "origin": "lesson:V3"
+            },
+            {
+              "text": "V4 · connector per source; caching per view; join placement; engine type",
+              "origin": "lesson:V4"
+            },
+            {
+              "text": "V7 · default retrieval; aggregation standard; alignment rules; late-data policy",
+              "origin": "lesson:V7"
+            },
+            {
+              "text": "P1 · access route; read tier; identity model; history source",
+              "origin": "lesson:P1"
+            },
+            {
+              "text": "V5 · policy model; data product ownership; catalogue and lineage",
+              "origin": "lesson:V5"
+            },
+            {
+              "text": "V6 · limits per workload; cache lifetime; agent quotas; heavy workloads",
+              "origin": "lesson:V6"
+            },
+            {
+              "text": "V6.1 · deployment model; zone; gateway pattern; high availability",
+              "origin": "lesson:V6.1"
+            },
+            {
+              "text": "V10 · style per scenario; history source of truth; agent access; review cycle",
+              "origin": "lesson:V10"
+            },
+            {
+              "text": "V11 · ML platform; scoring pattern; agent tool access; language model hosting",
+              "origin": "lesson:V11"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "glossary",
+      "title": "Summary: terms",
+      "narration": "The terms from the lessons, one line each.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "Say each term in one line.",
+      "sections": [
+        {
+          "title": "Terms",
+          "cls": "terms",
+          "items": [
+            {
+              "text": "Federation: one query across several databases, results combined.",
+              "origin": "lesson:V2"
+            },
+            {
+              "text": "CDC: change data capture; read only changes from a change log.",
+              "origin": "lesson:V2"
+            },
+            {
+              "text": "Logical data warehouse: stores plus virtualisation seen as one warehouse.",
+              "origin": "lesson:V3"
+            },
+            {
+              "text": "Data fabric: metadata and automation connect and govern data.",
+              "origin": "lesson:V3"
+            },
+            {
+              "text": "Data mesh: domains own data as products.",
+              "origin": "lesson:V3"
+            },
+            {
+              "text": "Semantic layer: shared definitions of metrics and dimensions.",
+              "origin": "lesson:V3"
+            },
+            {
+              "text": "Pushdown: work done at the source.",
+              "origin": "lesson:V4"
+            },
+            {
+              "text": "Interpolated value: calculated between stored events.",
+              "origin": "lesson:V7"
+            },
+            {
+              "text": "Time-weighted average: each value weighted by how long it lasted.",
+              "origin": "lesson:V7"
+            },
+            {
+              "text": "RTQP: the PI SQL query engine, on the AF server.",
+              "origin": "lesson:P1"
+            },
+            {
+              "text": "Data contract: schema, meaning, freshness, quality, SLA.",
+              "origin": "lesson:V5"
+            },
+            {
+              "text": "Unified Namespace: real-time current state on a broker.",
+              "origin": "lesson:V8"
+            },
+            {
+              "text": "Feature store: the same features for training and scoring.",
+              "origin": "lesson:V11"
+            },
+            {
+              "text": "MLOps: practices and tools that run the ML life cycle.",
+              "origin": "lesson:V11"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "Sources",
+      "narration": "Two facts checked against public sources.",
+      "nodes": "all",
+      "edges": [],
+      "remember": "Verify vendor claims against your installed versions.",
+      "what": "Checked on 18 October 2026.",
+      "sections": [
+        {
+          "title": "Verified facts",
+          "items": [
+            {
+              "text": "RTQP runs on the AF server: PI SQL Data Access Server (RTQP Engine) is a PI AF server component and can only be installed there. Source: AVEVA documentation, PI SQL Data Access Server (RTQP Engine), docs.aveva.com.",
+              "origin": "lesson:P1"
+            },
+            {
+              "text": "CONNECT shares contextualised PI data to Databricks via Delta Sharing, without copying. Sources: AVEVA CONNECT and Databricks page (discover.aveva.com/connect-databricks); AVEVA World 2025 presentation; ARC Advisory. 'Zero-copy' is the vendor's wording.",
+              "origin": "lesson:V9"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "trademarkNote": "AVEVA, PI System and related names are trademarks of their respective owners. Independent learning notes; not affiliated with or endorsed by AVEVA."
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var TODO = "To be covered";
+  var data = JSON.parse(document.getElementById("story-data").textContent);
+  var NS = "http://www.w3.org/2000/svg";
+  var map = data.map, scenes = data.scenes || [], N = scenes.length;
+  var idx = 0;
+  var $ = function (id) { return document.getElementById(id); };
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  var ICONS = {
+    sensor: '<circle cx="24" cy="22" r="13"/><path d="M24 22l7-6M24 35v8M16 43h16"/>',
+    controller: '<rect x="8" y="8" width="32" height="32" rx="3"/><path d="M14 16h20M14 24h20M14 32h8"/><circle cx="32" cy="32" r="2"/>',
+    document: '<path d="M12 4h16l10 10v30H12z"/><path d="M28 4v10h10M18 24h14M18 32h14"/>',
+    chip: '<rect x="10" y="10" width="28" height="28" rx="3"/><path d="M18 4v6M30 4v6M18 38v6M30 38v6M4 18h6M4 30h6M38 18h6M38 30h6"/>',
+    collector: '<path d="M6 10h36L28 26v14l-8 4V26z"/>',
+    archive: '<ellipse cx="24" cy="12" rx="14" ry="6"/><path d="M10 12v24c0 3.3 6.3 6 14 6s14-2.7 14-6V12M10 24c0 3.3 6.3 6 14 6s14-2.7 14-6"/>',
+    context: '<rect x="17" y="5" width="14" height="10" rx="2"/><rect x="4" y="33" width="14" height="10" rx="2"/><rect x="30" y="33" width="14" height="10" rx="2"/><path d="M24 15v8M11 33v-6h26v6"/>',
+    calculation: '<rect x="8" y="5" width="32" height="38" rx="3"/><path d="M14 11h20v8H14zM15 27h4M15 35h4M25 27h4M25 35h4"/>',
+    enterprise: '<rect x="6" y="6" width="36" height="12" rx="2"/><rect x="6" y="22" width="36" height="12" rx="2"/><path d="M12 12h2M12 28h2M24 34v6M14 42h20"/>',
+    cloud: '<path d="M14 38a9 9 0 010-18 12 12 0 0122-3 10 10 0 012 21z"/>',
+    consume: '<rect x="4" y="7" width="40" height="27" rx="3"/><path d="M16 42h16M24 34v8M10 28l8-9 6 5 9-11"/>',
+    grid: '<rect x="6" y="8" width="36" height="32" rx="3"/><path d="M6 20h36M6 30h36M20 8v32"/>',
+    api: '<path d="M16 14L6 24l10 10M32 14l10 10-10 10M27 10l-6 28"/>',
+    layers: '<path d="M24 6l18 9-18 9-18-9zM6 24l18 9 18-9M6 33l18 9 18-9"/>',
+    box: '<rect x="8" y="8" width="32" height="32" rx="4"/>',
+    shield: '<path d="M24 5l15 6v11c0 10-6.5 17-15 21C15.5 39 9 32 9 22V11z"/><path d="M17 24l5 5 9-10"/>',
+    tag: '<path d="M6 8h16l20 20-14 14L8 22z"/><circle cx="15" cy="16" r="3"/>',
+    flask: '<path d="M19 5h10M21 5v13L9 40a3 3 0 003 4h24a3 3 0 003-4L27 18V5"/><path d="M14 31h20"/>'
+  };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function sv(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  /* ---------- map ---------- */
+  var nodeById = {}, edgeEls = {}, nodeEls = {}, zoneEls = [], groups = {};
+  var NW = map.node.w, NH = map.node.h;
+
+  function half(n) { return n.type === "hub" ? { w: 14, h: 14 } : n.type === "band" ? { w: n.w / 2, h: 12 } : { w: NW / 2, h: NH / 2 }; }
+  function clip(a, b) {
+    var dx = b.x - a.x, dy = b.y - a.y, h = half(a);
+    var t = Math.min(dx === 0 ? Infinity : (h.w + 3) / Math.abs(dx), dy === 0 ? Infinity : (h.h + 3) / Math.abs(dy));
+    return { x: a.x + dx * t, y: a.y + dy * t };
+  }
+
+  function buildMap() {
+    var svg = $("map");
+    svg.setAttribute("viewBox", "0 0 " + map.width + " " + map.height);
+    var defs = sv("defs", {}, svg);
+    var m1 = sv("marker", { id: "arr", viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto-start-reverse" }, defs);
+    sv("path", { d: "M0 0L10 5L0 10z", "class": "mk" }, m1);
+
+    (map.zones || []).forEach(function (z) {
+      var zy = z.y != null ? z.y : 24, zh = z.h != null ? z.h : map.height - 34;
+      var zr = sv("rect", { "class": "zone", x: z.x, y: zy, width: z.w, height: zh, rx: 8 }, svg);
+      var t = sv("text", { "class": "zone-label", x: z.x + z.w / 2, y: z.y != null ? zy + 12 : 17 }, svg);
+      t.textContent = z.name;
+      if (z.group) zoneEls.push({ group: z.group, els: [zr, t] });
+    });
+
+    map.nodes.forEach(function (n) { nodeById[n.id] = n; if (n.group) (groups[n.group] = groups[n.group] || []).push(n.id); });
+
+    (map.edges || []).forEach(function (e) {
+      var a = nodeById[e.from], b = nodeById[e.to];
+      if (!a || !b) return;
+      var pts = [a].concat((e.via || []).map(function (q) { return { x: q[0], y: q[1] }; })).concat([b]);
+      var p1 = clip(a, pts[1]), p2 = clip(b, pts[pts.length - 2]);
+      if (e.off) {
+        var ddx = b.x - a.x, ddy = b.y - a.y, L = Math.sqrt(ddx * ddx + ddy * ddy) || 1, ox = -ddy / L * e.off, oy = ddx / L * e.off;
+        p1 = { x: p1.x + ox, y: p1.y + oy }; p2 = { x: p2.x + ox, y: p2.y + oy };
+      }
+      var d = "M" + p1.x + " " + p1.y + pts.slice(1, -1).map(function (q) { return "L" + q.x + " " + q.y; }).join("") + "L" + p2.x + " " + p2.y;
+      var path = sv("path", { "class": "edge" + (e.type === "ref" ? " ref" : "") + (e.style === "dashed" ? " adv" : "") + (e.xonly ? " xonly" : ""), d: d, "marker-end": "url(#arr)" }, svg);
+      if (e.type === "ref") path.setAttribute("marker-start", "url(#arr)");
+      var pulse = null, xm = null;
+      if (e.xonly) {
+        var len = path.getTotalLength ? path.getTotalLength() : 0, mp = len ? path.getPointAtLength(len * 0.45) : p1;
+        xm = sv("g", { "class": "xmark" }, svg);
+        sv("line", { x1: mp.x - 8, y1: mp.y - 8, x2: mp.x + 8, y2: mp.y + 8 }, xm);
+        sv("line", { x1: mp.x - 8, y1: mp.y + 8, x2: mp.x + 8, y2: mp.y - 8 }, xm);
+      }
+      if (e.type !== "ref" && !e.xonly) {
+        pulse = sv("circle", { "class": "pulse", r: 3.5, visibility: "hidden" }, svg);
+        var am = sv("animateMotion", { dur: "1.6s", repeatCount: "indefinite", path: d }, pulse);
+      }
+      edgeEls[e.id] = { path: path, pulse: pulse, def: e, x: xm };
+    });
+
+    map.nodes.forEach(function (n) {
+      var g = sv("g", { "class": "node" + (n.type === "hub" ? " hub" : n.type === "band" ? " band" : ""), transform: "translate(" + n.x + "," + n.y + ")" }, svg);
+      if (n.type === "band") {
+        sv("rect", { x: -n.w / 2, y: -12, width: n.w, height: 24, rx: 6 }, g);
+        var bt = sv("text", { "class": "l1", x: 0, y: 4 }, g); bt.textContent = n.l1;
+      } else if (n.type === "hub") {
+        sv("circle", { r: 9, cx: 0, cy: 0 }, g);
+        var tt = sv("text", { "class": "l2", x: 0, y: 24 }, g);
+        tt.textContent = n.l1;
+      } else {
+        sv("rect", { x: -NW / 2, y: -NH / 2, width: NW, height: NH, rx: 8 }, g);
+        var ic = sv("svg", { x: -12, y: -NH / 2 + 5, width: 24, height: 24, viewBox: "0 0 48 48", "class": "ic" }, g);
+        ic.innerHTML = ICONS[n.icon] || ICONS.box;
+        var l1 = sv("text", { "class": "l1", x: 0, y: NH / 2 - 19 }, g); l1.textContent = n.l1;
+        var l2 = sv("text", { "class": "l2", x: 0, y: NH / 2 - 7 }, g); l2.textContent = n.l2 || "";
+        g.insertBefore(sv("rect", { "class": "ring", x: -NW / 2 - 5, y: -NH / 2 - 5, width: NW + 10, height: NH + 10, rx: 12 }), g.firstChild);
+        if (n.store) sv("circle", { "class": "badge " + n.store, cx: NW / 2 - 9, cy: -NH / 2 + 9, r: 5.5, "data-store": n.store }, g);
+        if (n.zone) {
+          var zt = ZONES[n.zone] || n.zone, zw = 8 + zt.length * 4.1;
+          var cg = sv("g", { "class": "chip " + n.zone, "data-zone": zt }, g);
+          sv("rect", { x: -NW / 2 + 4, y: -NH / 2 - 7, width: zw, height: 11, rx: 3 }, cg);
+          var ct = sv("text", { x: -NW / 2 + 4 + zw / 2, y: -NH / 2 + 1.5 }, cg); ct.textContent = zt;
+        }
+      }
+      nodeEls[n.id] = g;
+    });
+  }
+
+  var ZONES = { plant: "Plant", dmz: "DMZ", corp: "Corporate", cloud: "Cloud", corpcloud: "Corporate or cloud" };
+  function seenSets(upto) {
+    var nodes = {}, edges = {};
+    for (var i = 0; i < upto; i++) {
+      var s = scenes[i];
+      if (s.nodes === "all") map.nodes.forEach(function (n) { nodes[n.id] = true; });
+      else (s.nodes || []).forEach(function (n) { nodes[n] = true; });
+      (s.reveal || []).forEach(function (n) { if (groups[n]) groups[n].forEach(function (id) { nodes[id] = true; }); else nodes[n] = true; });
+      (s.edges || []).forEach(function (e) { edges[e] = true; });
+    }
+    return { nodes: nodes, edges: edges };
+  }
+
+  function paintMap() {
+    var seen = seenSets(idx), s = idx > 0 ? scenes[idx - 1] : null;
+    var storesAt = scenes.findIndex(function (x) { return x.id === "stores"; }) + 1, badgesOn = storesAt > 0 && idx >= storesAt;
+    $("map").classList.toggle("badges", badgesOn);
+    $("storelegend").hidden = !badgesOn;
+    var rev = {};
+    for (var ri = 0; ri < idx; ri++) (scenes[ri].reveal || []).forEach(function (r) { rev[r] = true; });
+    var gone = function (id) { var gg = nodeById[id].group; return !!(gg && !rev[gg]); };
+    zoneEls.forEach(function (z) { z.els[0].setAttribute("class", "zone" + (rev[z.group] ? "" : " gone")); z.els[1].setAttribute("class", "zone-label" + (rev[z.group] ? "" : " gone")); });
+    $("map").classList.toggle("zones", !!(s && s.zones));
+    $("zonelegend").hidden = !(s && s.zones);
+    var focusN = {}, focusE = {};
+    if (s && s.nodes !== "all") (s.nodes || []).forEach(function (n) { focusN[n] = true; });
+    if (s) (s.edges || []).forEach(function (e) { focusE[e] = true; });
+    Object.keys(nodeEls).forEach(function (id) {
+      var nt = nodeById[id].type;
+      nodeEls[id].setAttribute("class", "node" + (nt === "hub" ? " hub" : nt === "band" ? " band" : "") + (focusN[id] ? " focus" : seen.nodes[id] ? " seen" : "") + (gone(id) ? " gone" : ""));
+    });
+    var flows = $("flows");
+    flows.textContent = "";
+    Object.keys(edgeEls).forEach(function (id) {
+      var o = edgeEls[id], hid = gone(o.def.from) || gone(o.def.to), f = focusE[id] && !hid && !o.def.xonly;
+      var base = "edge" + (o.def.type === "ref" ? " ref" : "") + (o.def.style === "dashed" ? " adv" : "") + (o.def.xonly ? " xonly" : "");
+      o.path.setAttribute("class", base + (f ? " focus" : seen.edges[id] ? " seen" : "") + (hid ? " gone" : ""));
+      if (o.pulse) o.pulse.setAttribute("visibility", f && !reduced.matches ? "visible" : "hidden");
+      if (f) {
+        var a = nodeById[o.def.from], b = nodeById[o.def.to], row = el("div");
+        var names = function (n) { return n.type === "hub" ? "Read access" : n.l1 + (n.l2 ? " " + n.l2 : ""); };
+        row.appendChild(el("b", null, names(a) + (o.def.type === "ref" ? " ↔ " : " → ") + names(b)));
+        row.appendChild(document.createTextNode(" · " + o.def.label));
+        if (o.def.hop) row.appendChild(el("span", "hop", " · " + o.def.hop));
+        row.dataset.key = o.def.label + "|" + (o.def.hop || "");
+        flows.appendChild(row);
+      }
+    });
+    // collapse repeated labels of consumer fan-out into one line
+    var rows = Array.prototype.slice.call(flows.children), seenLabel = {};
+    rows.forEach(function (r) {
+      var key = r.dataset.key;
+      if (seenLabel[key] && /Read access →/.test(r.firstChild.textContent)) r.remove(); else seenLabel[key] = true;
+    });
+  }
+
+  function setRings(ids, eids, bids) {
+    Object.keys(nodeEls).forEach(function (id) { nodeEls[id].setAttribute("data-ring", ids && ids.indexOf(id) >= 0 ? "1" : "0"); });
+    Object.keys(edgeEls).forEach(function (id) {
+      var o = edgeEls[id], b = bids && bids.indexOf(id) >= 0 ? "1" : "0";
+      o.path.setAttribute("data-ring", eids && eids.indexOf(id) >= 0 ? "1" : "0");
+      o.path.setAttribute("data-blocked", b);
+      if (o.x) o.x.setAttribute("data-on", b);
+    });
+  }
+  function simMapSteps(cfg) {
+    var frames = cfg.steps.map(function (st) {
+      var roles = [];
+      (st.nodes || []).forEach(function (id) {
+        var r = nodeById[id] && nodeById[id].store;
+        if (r && roles.indexOf(r) < 0) roles.push(r);
+      });
+      var head = st.title + (roles.length && cfg.roles && !st.noRole ? " · " + roles.map(function (r) { return r.charAt(0).toUpperCase() + r.slice(1); }).join(" / ") : "");
+      return { info: { head: head, caption: st.caption, nodes: st.nodes || [], edges: st.edges || [], unmapped: !!st.unmapped, blocked: st.blocked || [] } };
+    });
+    return { frames: frames, N: frames.length, rows: null };
+  }
+
+  /* ---------- slope charts (exception and compression) ---------- */
+  var activeChart = null, chartSeq = 0;
+  function fmt(x) { if (Math.abs(x) < 5e-4) x = 0; var s = x.toFixed(3); if (s.charAt(s.length - 1) === "0") s = s.slice(0, -1); return s.replace("-", "−"); }
+  function fv(x) { return x.toFixed(2); }
+  function lerp(a, b, k) {
+    if (typeof a === "number" && typeof b === "number") return a + (b - a) * k;
+    if (Array.isArray(a)) return a.map(function (x, i) { return lerp(x, b[i], k); });
+    if (a && typeof a === "object") { var o = {}; for (var key in b) o[key] = key in a ? lerp(a[key], b[key], k) : b[key]; return o; }
+    return b;
+  }
+  function pstate(P, k, sent, extra) {
+    return P.map(function (q, i) {
+      return { a: i <= k ? 1 : 0, fill: sent(i) ? 1 : 0, big: i === k ? 1 : 0, warn: extra && extra.warn === i ? 1 : 0 };
+    });
+  }
+
+  function simException(cfg) {
+    var P = cfg.points, dev = cfg.dev, sent = P.map(function () { return false; }), frames = [], rows = [], last = 0;
+    var zeros = function () { return P.map(function () { return 0; }); };
+    for (var k = 0; k < P.length; k++) {
+      var p = P[k], lastBefore = P[last], diff = k === 0 ? 0 : Math.abs(p.v - lastBefore.v), decision, caption, old = null, hl = 0;
+      if (k === 0) {
+        sent[0] = true; decision = "Sent (first value)";
+        caption = p.label + " arrives: the first value is always sent. The box is " + fv(p.v - dev) + "–" + fv(p.v + dev) + " bar around it.";
+      } else if (diff > dev + 1e-9) {
+        old = { x0: lastBefore.t, x1: p.t, lo: lastBefore.v - dev, hi: lastBefore.v + dev };
+        if (!sent[k - 1]) { sent[k - 1] = true; hl = 1; }
+        sent[k] = true; last = k;
+        decision = "Sent" + (hl ? ", with " + P[k - 1].label + " (previous value)" : "");
+        caption = p.label + " (" + fv(p.v) + ") is " + (p.v > lastBefore.v ? "above" : "below") + " the box, so " + p.label + " is sent" +
+          (hl ? ", and " + P[k - 1].label + " is sent with it." : ".");
+      } else {
+        decision = "Held (inside the box)";
+        caption = p.label + " (" + fv(p.v) + ") is inside the box, so it is held, not sent.";
+      }
+      if (k === P.length - 1 && cfg.final) caption += " " + cfg.final;
+      var L = P[last], x1 = Math.max(p.t, L.t + 0.3), snap = sent.slice();
+      var prevP = P[Math.max(0, k - 1)];
+      frames.push({
+        n: {
+          box: { x0: L.t, x1: x1, lo: L.v - dev, hi: L.v + dev },
+          old: old ? { x0: old.x0, x1: old.x1, lo: old.lo, hi: old.hi, a: 1 } : { x0: L.t, x1: x1, lo: L.v - dev, hi: L.v + dev, a: 0 },
+          hl: { a: hl, t: prevP.t, v: prevP.v },
+          dim: { a: 0 }, q: { a: 0, m: zeros() },
+          pts: pstate(P, k, function (i) { return snap[i]; })
+        },
+        info: { caption: caption }
+      });
+      rows.push([k + 1, p.label, p.t + " s", fv(p.v), lastBefore.label + " (" + fv(lastBefore.v) + ")", fv(diff), decision]);
+    }
+    var sentIdx = [];
+    sent.forEach(function (f, i) { if (f) sentIdx.push(i); });
+    frames.forEach(function (f) { f.info.sentIdx = sentIdx; });
+    if (cfg.buffer) {
+      var fin = JSON.parse(JSON.stringify(frames[frames.length - 1].n));
+      fin.dim.a = 1; fin.q = { a: 1, m: P.map(function (q, i) { return sent[i] ? 1 : 0; }) };
+      fin.pts.forEach(function (o) { o.big = 0; });
+      frames.push({ n: fin, info: { caption: cfg.buffer.caption, sentIdx: sentIdx } });
+      rows.push([P.length + 1, "Buffer", "–", "–", "–", "–", sentIdx.map(function (i) { return P[i].label; }).join(", ") + " queued"]);
+    }
+    return { frames: frames, N: frames.length, rows: rows, head: ["Step", "Point", "Time", "Value", "Last sent", "Difference", "Decision"] };
+  }
+
+  function simCompression(cfg) {
+    var P = cfg.points, dev = cfg.dev, arch = [0], frames = [], rows = [];
+    var up = Infinity, lo = -Infinity, upBy = -1, loBy = -1, lastK = P.length - 1;
+    for (var k = 1; k <= lastK; k++) {
+      var A = P[arch[arch.length - 1]], N = P[k], slope = (N.v - A.v) / (N.t - A.t);
+      var testFrom = A, oldUp = up, oldLo = lo, inside = slope >= lo - 1e-9 && slope <= up + 1e-9;
+      var warn = -1, closing = false, caption, decision, legend, below = slope < lo;
+      if (!inside) {
+        closing = true; warn = below ? loBy : upBy;
+        arch.push(k - 1); A = P[k - 1]; up = Infinity; lo = -Infinity;
+      }
+      var dt = N.t - A.t, u = (N.v + dev - A.v) / dt, l = (N.v - dev - A.v) / dt;
+      if (u < up) { up = u; upBy = k; }
+      if (l > lo) { lo = l; loBy = k; }
+      var head = N.t + " s (" + fv(N.v) + ")";
+      if (k === 1) {
+        caption = head + " arrives and becomes the snapshot. The doors open from the archived point at " + A.t + " s.";
+        decision = "Snapshot"; legend = ["Doors open: upper " + fmt(up) + ", lower " + fmt(lo), "Test slope " + fmt(slope)];
+      } else if (inside) {
+        caption = head + ": the test slope " + fmt(slope) + " is inside the doors, so the " + P[k - 1].t + " s value is dropped.";
+        decision = "Dropped " + P[k - 1].t + " s";
+        legend = ["Test slope " + fmt(slope) + " is inside [" + fmt(oldLo) + ", " + fmt(oldUp) + "]", "Doors narrow to upper " + fmt(up) + ", lower " + fmt(lo)];
+      } else {
+        caption = head + ": the test slope " + fmt(slope) + " falls " + (below ? "below the lower" : "above the upper") + " door, so the doors close and the " + P[k - 1].t + " s value is archived.";
+        decision = "Doors close: " + P[k - 1].t + " s archived";
+        legend = ["Test slope " + fmt(slope) + " is " + (below ? "below the lower door " + fmt(oldLo) : "above the upper door " + fmt(oldUp)) + ": doors close",
+                  "New doors from " + A.t + " s: upper " + fmt(up) + ", lower " + fmt(lo)];
+      }
+      if (k === lastK && cfg.final) caption += " " + cfg.final;
+      var snap = arch.slice(), doors = { x0: A.t, y0: A.v, up: up, lo: lo, xe: N.t };
+      frames.push({
+        n: {
+          doors: doors,
+          ghost: closing ? { x0: testFrom.t, y0: testFrom.v, up: oldUp, lo: oldLo, xe: N.t, a: 1 }
+                         : { x0: doors.x0, y0: doors.y0, up: doors.up, lo: doors.lo, xe: doors.xe, a: 0 },
+          test: { x0: testFrom.t, y0: testFrom.v, t: N.t, v: N.v },
+          hist: { a: k === lastK ? 1 : 0 },
+          pts: pstate(P, k, function (i) { return snap.indexOf(i) >= 0; }, { warn: warn })
+        },
+        info: { caption: caption, legend: legend, k: k }
+      });
+      rows.push([k, N.t + " s", fv(N.v), fmt(slope), fmt(up), fmt(lo), decision]);
+    }
+    return { frames: frames, rows: rows, arch: arch, head: ["Step", "Time", "Value", "Test slope", "Upper door", "Lower door", "Decision"] };
+  }
+
+  function simZones(cfg) {
+    var N = 5;
+    return {
+      N: N, rows: null,
+      frame: function (i, mode) {
+        var diode = mode === "diode", cap;
+        if (i === 0) cap = cfg.steps[0];
+        else if (i === 1) cap = cfg.steps[1];
+        else if (i === 2) cap = cfg.steps[2];
+        else if (i === 3) cap = cfg.steps[3];
+        else cap = diode ? cfg.diode.text + " " + cfg.diode.result : cfg.firewall.text;
+        return {
+          n: { site: { a: 1 }, ent: { a: i >= 1 ? 1 : 0.25 }, lap: { a: i >= 2 ? 1 : 0.25 },
+               ar: [1, i >= 1 ? 1 : 0, i >= 2 ? 1 : 0], cross: { a: i >= 3 ? 1 : 0 }, bar: { a: i >= 4 ? 1 : 0, m: diode ? 1 : 0 } },
+          info: { caption: cap }
+        };
+      }
+    };
+  }
+
+  /* ---------- DV chart kinds ---------- */
+  function tx(svg, x, y, s, a) { var t = sv("text", Object.assign({ x: x, y: y, "class": "ax" }, a || {}), svg); t.textContent = s; return t; }
+  function frames(cfg) { return cfg.steps.map(function (st) { return { info: { head: st.title, caption: st.caption } }; }); }
+  function simSpectrum(cfg) {
+    var S = cfg.steps, n = S.length;
+    return { H: 150, frames: frames(cfg), draw: function (svg, k) {
+      var x0 = 14, x1 = 506, w = (x1 - x0) / n;
+      tx(svg, x0, 16, cfg.left, { "class": "ax t" }); tx(svg, x1, 16, cfg.right, { "class": "ax t", "text-anchor": "end" });
+      sv("line", { x1: x0, y1: 26, x2: x1, y2: 26, stroke: "var(--accent)", "stroke-width": 1.5 }, svg);
+      sv("polygon", { points: x0 + ",26 " + (x0 + 8) + ",22 " + (x0 + 8) + ",30", fill: "var(--accent)" }, svg);
+      sv("polygon", { points: x1 + ",26 " + (x1 - 8) + ",22 " + (x1 - 8) + ",30", fill: "var(--accent)" }, svg);
+      S.forEach(function (st, i) {
+        var bx = x0 + i * w + 3, on = i === k;
+        sv("rect", { x: bx, y: 38, width: w - 6, height: 40, rx: 6, fill: on ? "var(--accent)" : "var(--bg)", stroke: on ? "var(--accent)" : "var(--border)", "stroke-width": 1.5, "data-role": "style", "data-on": on ? "1" : "0" }, svg);
+        st.label.split("\n").forEach(function (ln, j, arr) {
+          tx(svg, bx + (w - 6) / 2, 62 - (arr.length - 1) * 6 + j * 12, ln, { "class": "pl", style: on ? "fill:var(--accent-text)" : "" });
+        });
+        tx(svg, bx + (w - 6) / 2, 94, st.fresh, { "text-anchor": "middle", style: on ? "font-weight:600;fill:var(--text)" : "" });
+      });
+      (cfg.groups || []).forEach(function (g) {
+        var gx0 = x0 + g.from * w + 6, gx1 = x0 + (g.to + 1) * w - 6;
+        sv("path", { d: "M" + gx0 + " 106v6H" + gx1 + "v-6", fill: "none", stroke: "var(--muted)", "stroke-width": 1.2 }, svg);
+        tx(svg, (gx0 + gx1) / 2, 128, g.label, { "text-anchor": "middle", "class": "ax t" });
+      });
+    } };
+  }
+  function simTwoPlans(cfg) {
+    var P = cfg.plans, max = Math.max.apply(null, P.map(function (p) { return p.values; }));
+    return { H: 180, frames: frames(cfg), draw: function (svg, k) {
+      var show = cfg.steps[k].show;
+      P.forEach(function (p, i) {
+        var y = 26 + i * 78, on = show.indexOf(i) >= 0, g = sv("g", { opacity: on ? 1 : 0.2, "data-role": "plan", "data-on": on ? "1" : "0" }, svg);
+        var t = sv("text", { x: 14, y: y, "class": "ax t" }, g); t.textContent = p.name;
+        sv("rect", { x: 14, y: y + 10, width: 56, height: 30, rx: 5, fill: "var(--accent-tint)", stroke: "var(--accent)" }, g);
+        var a = sv("text", { x: 42, y: y + 29, "class": "pl" }, g); a.textContent = "PI";
+        sv("rect", { x: 450, y: y + 10, width: 56, height: 30, rx: 5, fill: "var(--bg)", stroke: "var(--border)" }, g);
+        var b = sv("text", { x: 478, y: y + 29, "class": "pl" }, g); b.textContent = "Engine";
+        var bw = Math.max(3, 360 * p.values / max);
+        sv("rect", { x: 80, y: y + 17, width: bw, height: 16, rx: 3, fill: i === 0 ? "var(--accent)" : "var(--warn)", "data-role": "bar", "data-values": String(p.values) }, g);
+        var lt = sv("text", { x: i === 0 ? 80 + bw + 6 : 84, y: y + 55, "class": "ax" }, g); lt.textContent = p.label;
+        if (i === 0) lt.setAttribute("y", y + 29);
+      });
+    } };
+  }
+  function tsChart(svg, cfg, H) {
+    var ml = 38, mr = 14, mt = 12, mb = 28, W = 520, pw = W - ml - mr, ph = H - mt - mb;
+    var X = function (t) { return ml + pw * t / cfg.tmax; }, Y = function (v) { return mt + ph * (cfg.vmax - v) / (cfg.vmax - cfg.vmin); };
+    sv("rect", { x: ml, y: mt, width: pw, height: ph, fill: "var(--bg)", stroke: "var(--border)" }, svg);
+    cfg.vticks.forEach(function (v) { sv("line", { x1: ml, y1: Y(v), x2: ml + pw, y2: Y(v), stroke: "var(--border)", "stroke-width": 0.6 }, svg); tx(svg, ml - 5, Y(v) + 3.5, String(v), { "text-anchor": "end" }); });
+    for (var t = 0; t <= cfg.tmax; t += 10) { sv("line", { x1: X(t), y1: mt, x2: X(t), y2: mt + ph, stroke: "var(--border)", "stroke-width": 0.6 }, svg); tx(svg, X(t), mt + ph + 13, String(t), { "text-anchor": "middle" }); }
+    tx(svg, ml + pw / 2, H - 3, "Minutes", { "text-anchor": "middle", "class": "ax t" });
+    return { X: X, Y: Y, ml: ml, pw: pw, mt: mt, ph: ph };
+  }
+  function interp(P, t) {
+    if (t >= P[P.length - 1][0]) return P[P.length - 1][1];
+    for (var i = 0; i < P.length - 1; i++) if (t >= P[i][0] && t <= P[i + 1][0]) return P[i][1] + (P[i + 1][1] - P[i][1]) * (t - P[i][0]) / (P[i + 1][0] - P[i][0]);
+    return P[0][1];
+  }
+  function simpleAvg(P) { return P.reduce(function (a, p) { return a + p[1]; }, 0) / P.length; }
+  function twAvg(P, tmax) {
+    var a = 0;
+    for (var i = 0; i < P.length - 1; i++) a += (P[i][1] + P[i + 1][1]) / 2 * (P[i + 1][0] - P[i][0]);
+    a += P[P.length - 1][1] * (tmax - P[P.length - 1][0]);
+    return a / (tmax - P[0][0]);
+  }
+  function lineOf(P, tmax, X, Y) { return P.map(function (p) { return X(p[0]) + "," + Y(p[1]); }).join(" ") + " " + X(tmax) + "," + Y(P[P.length - 1][1]); }
+  function hline(svg, c, v, label, color, below, role) {
+    sv("line", { x1: c.ml, y1: c.Y(v), x2: c.ml + c.pw, y2: c.Y(v), stroke: color, "stroke-width": 2, "stroke-dasharray": "6 4" }, svg);
+    tx(svg, c.ml + c.pw - 4, c.Y(v) + (below ? 14 : -5), label, { "text-anchor": "end", "class": "ax t", style: "fill:" + color, "data-role": role || "avg", "data-value": v.toFixed(1) });
+  }
+  function simRetrieval(cfg) {
+    var P = cfg.points, H = 220;
+    return { H: H, frames: frames(cfg), draw: function (svg, k) {
+      var c = tsChart(svg, cfg, H), kind = cfg.steps[k].kind;
+      sv("polyline", { points: lineOf(P, cfg.tmax, c.X, c.Y), fill: "none", stroke: "var(--muted)", "stroke-width": 1, opacity: 0.5 }, svg);
+      P.forEach(function (p, i) {
+        var hi = kind === "recorded" || (kind === "plot" && cfg.plot.indexOf(i) >= 0);
+        sv("circle", { cx: c.X(p[0]), cy: c.Y(p[1]), r: hi ? 4.5 : 3, fill: hi ? "var(--accent)" : "var(--panel)", stroke: "var(--accent)", "stroke-width": 1.4, opacity: hi ? 1 : 0.5, "data-role": hi ? "pt-on" : "pt" }, svg);
+      });
+      if (kind === "interpolated") {
+        for (var t = 0; t <= cfg.tmax; t += cfg.every) {
+          var v = interp(P, t);
+          sv("rect", { x: c.X(t) - 4, y: c.Y(v) - 4, width: 8, height: 8, fill: "var(--warn)", "data-role": "interp", "data-value": v.toFixed(1) }, svg);
+          tx(svg, c.X(t) + (t === cfg.tmax ? -4 : 0), c.Y(v) + (v > 15 ? 16 : -8), v.toFixed(1), { "text-anchor": t === cfg.tmax ? "end" : "middle", style: "fill:var(--warn);font-weight:600" });
+        }
+      }
+      if (kind === "summary") {
+        var tw = twAvg(P, cfg.tmax);
+        hline(svg, c, tw, "Hourly time-weighted average " + tw.toFixed(1), "var(--warn)", true);
+      }
+    } };
+  }
+  function simAverage(cfg) {
+    var P = cfg.points, H = 220;
+    return { H: H, frames: frames(cfg), draw: function (svg, k) {
+      var c = tsChart(svg, cfg, H), show = cfg.steps[k].show, sa = simpleAvg(P), tw = twAvg(P, cfg.tmax);
+      if (show.indexOf("tw") >= 0) sv("polygon", { points: c.X(0) + "," + c.Y(cfg.vmin) + " " + lineOf(P, cfg.tmax, c.X, c.Y) + " " + c.X(cfg.tmax) + "," + c.Y(cfg.vmin), fill: "var(--accent-tint)", opacity: 0.9 }, svg);
+      sv("polyline", { points: lineOf(P, cfg.tmax, c.X, c.Y), fill: "none", stroke: "var(--accent)", "stroke-width": 1.4 }, svg);
+      P.forEach(function (p) { sv("circle", { cx: c.X(p[0]), cy: c.Y(p[1]), r: 3.5, fill: "var(--accent)" }, svg); });
+      if (show.indexOf("simple") >= 0) hline(svg, c, sa, "Simple average " + sa.toFixed(1), "var(--warn)", false, "simple");
+      if (show.indexOf("tw") >= 0) hline(svg, c, tw, "Time-weighted average " + tw.toFixed(1), "var(--accent)", true, "tw");
+    } };
+  }
+  var DVKINDS = { spectrum: simSpectrum, "two-plans": simTwoPlans, "retrieval-types": simRetrieval, "average-compare": simAverage };
+
+  function chartBlock(cfg) {
+    var sim = DVKINDS[cfg.kind] ? DVKINDS[cfg.kind](cfg) : cfg.kind === "exception" ? simException(cfg) : cfg.kind === "zones" ? simZones(cfg) : cfg.kind === "map-steps" ? simMapSteps(cfg) : simCompression(cfg);
+    var N = sim.N || sim.frames.length, id = "c" + (++chartSeq);
+    var F = function (i) { return sim.frame ? sim.frame(i, state.mode) : sim.frames[i]; };
+    var W = 520, H = sim.H || (cfg.kind === "zones" ? 270 : 290), ml = 50, mr = 64, mt = 14, mb = 40, pw = W - ml - mr, ph = H - mt - mb;
+    var X = function (t) { return ml + pw * t / cfg.tmax; };
+    var Y = function (v) { return mt + ph * (cfg.vmax - v) / (cfg.vmax - cfg.vmin); };
+    var state = { step: 0, cur: null, raf: 0, mode: "firewall" }, curDim = 0;
+    var titles = { exception: "Walkthrough: exception test", compression: "Walkthrough: swinging door compression", zones: "Walkthrough: network zones", "map-steps": cfg.title || "Walkthrough" };
+
+    var box = el("div", "sec walk");
+    var ttl = cfg.title || titles[cfg.kind] || "Walkthrough";
+    box.appendChild(el("h3", null, ttl));
+    var holder = el("div", "chart");
+    var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-label": cfg.title || titles[cfg.kind] || "Walkthrough" });
+    holder.appendChild(svg);
+    var caption = el("div", "caption"); caption.setAttribute("aria-live", "polite");
+    var ctl = el("div", "ctl walkctl");
+    var back = el("button", null, "◀ Back"), nxt = el("button", "primary", "Next step ▶"), rst = el("button", null, "Restart"), lab = el("span", "stepno");
+    back.type = nxt.type = rst.type = "button";
+    back.title = "Previous step (Shift+Left)"; nxt.title = "Next step (Shift+Right)"; rst.title = "Restart the walkthrough";
+    ctl.appendChild(back); ctl.appendChild(lab); ctl.appendChild(nxt); ctl.appendChild(rst);
+    if (cfg.kind !== "map-steps") box.appendChild(holder);
+    var tog = null, togBtns = {};
+    if (cfg.kind === "zones") {
+      tog = el("div", "toggle"); tog.setAttribute("role", "group"); tog.setAttribute("aria-label", "Barrier type");
+      [["firewall", "Firewall"], ["diode", "Data diode"]].forEach(function (m) {
+        var b = el("button", null, m[1]); b.type = "button"; togBtns[m[0]] = b;
+        b.addEventListener("click", function () { state.mode = m[0]; show(state.step, true); });
+        tog.appendChild(b);
+      });
+      box.appendChild(tog);
+    }
+    box.appendChild(caption);
+    var calcEls = {};
+    (cfg.calc || []).forEach(function (c) {
+      var d = el("div", "calc");
+      d.setAttribute("data-calc", c.id);
+      if (c.title) d.appendChild(el("div", "ctitle", c.title));
+      (c.lines || []).forEach(function (ln) { d.appendChild(el("div", null, ln)); });
+      if (c.table) {
+        var tb = el("table"), hr = el("tr");
+        c.table.head.forEach(function (h) { hr.appendChild(el("th", null, h)); });
+        tb.appendChild(hr);
+        c.table.rows.forEach(function (r, ri) { var tr = el("tr", ri === c.table.rows.length - 1 && c.table.total ? "total" : null); r.forEach(function (x) { tr.appendChild(el("td", null, x)); }); tb.appendChild(tr); });
+        d.appendChild(tb);
+      }
+      (c.after || []).forEach(function (ln) { d.appendChild(el("div", "cres", ln)); });
+      calcEls[c.id] = d; box.appendChild(d);
+    });
+    if (cfg.closing) box.appendChild(el("div", "calc closing on", cfg.closing));
+    if (cfg.note) box.appendChild(el("div", "key", cfg.note));
+    var trs = [];
+    if (sim.rows) {
+      var det = el("details", "numbers"), sum = el("summary", null, "Show numbers");
+      det.appendChild(sum);
+      var tbl = el("table"), thead = el("tr");
+      sim.head.forEach(function (h) { thead.appendChild(el("th", null, h)); });
+      tbl.appendChild(thead);
+      trs = sim.rows.map(function (r) { var tr = el("tr"); r.forEach(function (c) { tr.appendChild(el("td", null, String(c))); }); tbl.appendChild(tr); return tr; });
+      det.appendChild(tbl);
+      box.appendChild(det);
+    }
+    box.ctl = ctl;
+
+    function T(x, y, txt, attrs) {
+      var t = sv("text", Object.assign({ x: x, y: y, "class": "ax" }, attrs || {}), svg);
+      t.textContent = txt; return t;
+    }
+    function circle(p, o, i) {
+      var cx = X(cfg.points[i].t), cy = Y(cfg.points[i].v), r = 4.5 + 2.5 * o.big;
+      if (o.a <= 0.01) return;
+      var op = o.a * (o.fill > 0.5 ? 1 : 1 - 0.65 * curDim);
+      var g = sv("g", { opacity: op, "data-role": "pt", "data-label": cfg.points[i].label, "data-fill": o.fill.toFixed(2), "data-warn": o.warn.toFixed(2) }, svg);
+      sv("circle", { cx: cx, cy: cy, r: r, fill: "var(--panel)", stroke: "var(--muted)", "stroke-width": 1.6 }, g);
+      sv("circle", { cx: cx, cy: cy, r: r, fill: "var(--accent)", stroke: "var(--accent)", "stroke-width": 1.6, opacity: o.fill }, g);
+      sv("circle", { cx: cx, cy: cy, r: r, fill: "var(--warn)", stroke: "var(--warn)", "stroke-width": 1.6, opacity: o.warn }, g);
+      if (o.big > 0.01) sv("circle", { cx: cx, cy: cy, r: r + 3, fill: "none", stroke: "var(--text)", "stroke-width": 1.6, opacity: o.big }, g);
+      var tx = sv("text", { x: cx, y: cy - r - 6, "class": "pl" }, g); tx.textContent = cfg.points[i].label;
+    }
+    function line(x1, y1, x2, y2, attrs) { return sv("line", Object.assign({ x1: x1, y1: y1, x2: x2, y2: y2 }, attrs), svg); }
+
+    function paintZones(s) {
+      var cols = [[8, 168, "Plant network"], [180, 160, "Industrial DMZ"], [346, 166, "Corporate network"]];
+      cols.forEach(function (c, i) {
+        sv("rect", { x: c[0], y: 8, width: c[1], height: H - 16, rx: 8, fill: i === 1 ? "var(--soft)" : "var(--bg)", stroke: "var(--border)", "stroke-dasharray": i === 1 ? "5 3" : "0" }, svg);
+        T(c[0] + c[1] / 2, 24, c[2], { "text-anchor": "middle", "class": "ax t" });
+      });
+      var node = function (cx, cy, txt, a, role) {
+        var g = sv("g", { opacity: a, "data-role": role }, svg);
+        sv("rect", { x: cx - 56, y: cy - 22, width: 112, height: 44, rx: 8, fill: "var(--panel)", stroke: "var(--accent)", "stroke-width": 1.6 }, g);
+        var t = sv("text", { x: cx, y: cy + 4, "class": "pl" }, g); t.textContent = txt;
+      };
+      var arrow = function (x1, y1, x2, y2, a, role, both) {
+        var g = sv("g", { opacity: a, "data-role": role }, svg);
+        sv("line", { x1: x1, y1: y1, x2: x2, y2: y2, stroke: "var(--accent)", "stroke-width": 2.2 }, g);
+        var ang = Math.atan2(y2 - y1, x2 - x1), hs = 7;
+        var head = function (x, y, an) { sv("polygon", { points: [x + "," + y, (x - hs * Math.cos(an - 0.45)) + "," + (y - hs * Math.sin(an - 0.45)), (x - hs * Math.cos(an + 0.45)) + "," + (y - hs * Math.sin(an + 0.45))].join(" "), fill: "var(--accent)" }, g); };
+        head(x2, y2, ang); if (both) head(x1, y1, ang + Math.PI);
+      };
+      var SX = 92, EX = 429, YT = 96, YL = 214;
+      arrow(SX + 56, YT, 260, YT, s.ar[0], "ar-out");
+      T(214, YT - 32, "outward", { "text-anchor": "middle", opacity: s.ar[0] });
+      arrow(260, YT, EX - 56, YT, s.ar[1], "ar-in");
+      T(294, YT - 32, "from the DMZ side", { "text-anchor": "middle", opacity: s.ar[1] });
+      arrow(EX, YL - 22, EX, YT + 22, s.ar[2], "ar-query", true);
+      T(EX + 8, 160, "queries", { opacity: s.ar[2] });
+      node(SX, YT, "Site PI", s.site.a, "n-site");
+      node(EX, YT, "Enterprise PI", s.ent.a, "n-ent");
+      node(EX, YL, "Engineer's laptop", s.lap.a, "n-lap");
+      if (s.cross.a > 0.01) {
+        var g = sv("g", { opacity: s.cross.a, "data-role": "cross" }, svg);
+        sv("line", { x1: EX - 56, y1: YL, x2: SX, y2: YT + 22, stroke: "var(--warn)", "stroke-width": 2, "stroke-dasharray": "5 4" }, g);
+        var mx = 260, my = YL - (YL - YT - 22) * ((EX - 56 - 260) / (EX - 56 - SX));
+        sv("line", { x1: mx - 9, y1: my - 9, x2: mx + 9, y2: my + 9, stroke: "var(--warn)", "stroke-width": 3.5 }, g);
+        sv("line", { x1: mx - 9, y1: my + 9, x2: mx + 9, y2: my - 9, stroke: "var(--warn)", "stroke-width": 3.5 }, g);
+        ["if the laptop is infected,", "the attack stops at the DMZ"].forEach(function (ln, j) {
+          var t = sv("text", { x: 260, y: 246 + j * 13, "class": "ax hlt", "text-anchor": "middle", style: "fill:var(--warn)" }, g); t.textContent = ln;
+        });
+      }
+      if (s.bar.a > 0.01) {
+        var b = sv("g", { opacity: s.bar.a, "data-role": "barrier", "data-mode": s.bar.m > 0.5 ? "diode" : "firewall" }, svg);
+        [180, 340].forEach(function (bx) {
+          var fw = sv("g", { opacity: 1 - s.bar.m }, b);
+          sv("rect", { x: bx - 5, y: YT - 26, width: 10, height: 52, fill: "var(--warn)", opacity: 0.85 }, fw);
+          [-16, -4, 8].forEach(function (dy) { line(bx - 5, YT + dy, bx + 5, YT + dy, { stroke: "var(--bg)", "stroke-width": 1.5 }); });
+          var dg = sv("g", { opacity: s.bar.m }, b);
+          sv("polygon", { points: (bx - 8) + "," + (YT - 14) + " " + (bx + 8) + "," + YT + " " + (bx - 8) + "," + (YT + 14), fill: "var(--accent)" }, dg);
+          sv("rect", { x: bx + 8, y: YT - 14, width: 3, height: 28, fill: "var(--accent)" }, dg);
+        });
+        var lb = sv("text", { x: 260, y: YT + 40, "class": "ax hlt", "text-anchor": "middle" }, b);
+        lb.textContent = s.bar.m > 0.5 ? "agent on each side copies data" : "software rules, two-way where allowed";
+      }
+    }
+
+    function paint(s, info) {
+      svg.textContent = "";
+      if (cfg.kind === "zones") { paintZones(s); return; }
+      var defs = sv("defs", {}, svg), cp = sv("clipPath", { id: id }, defs);
+      sv("rect", { x: ml, y: mt, width: pw, height: ph }, cp);
+      sv("rect", { x: ml, y: mt, width: pw, height: ph, fill: "var(--bg)", stroke: "var(--border)" }, svg);
+      var step = cfg.vstep || 0.05, v;
+      curDim = s.dim ? s.dim.a : 0;
+      for (v = cfg.vmin; v <= cfg.vmax + 1e-9; v += step) {
+        line(ml, Y(v), ml + pw, Y(v), { stroke: "var(--border)", "stroke-width": 0.6, opacity: 0.7 });
+        T(ml - 6, Y(v) + 3.5, v.toFixed(2), { "text-anchor": "end" });
+      }
+      for (var t = 0; t <= cfg.tmax; t++) {
+        line(X(t), mt, X(t), mt + ph, { stroke: "var(--border)", "stroke-width": 0.6, opacity: 0.7 });
+        T(X(t), mt + ph + 14, String(t), { "text-anchor": "middle" });
+      }
+      T(ml + pw / 2, H - 6, "Time (s)", { "text-anchor": "middle", "class": "ax t" });
+      T(12, mt + ph / 2, "Value (bar)", { "text-anchor": "middle", "class": "ax t", transform: "rotate(-90 12 " + (mt + ph / 2) + ")" });
+      var g = sv("g", { "clip-path": "url(#" + id + ")" }, svg);
+      var keep = svg; svg = g;
+      var i, o, bo = 1 - 0.7 * curDim;
+      if (cfg.kind === "exception") {
+        if (s.old.a > 0.01) sv("rect", { x: X(s.old.x0), y: Y(s.old.hi), width: X(s.old.x1) - X(s.old.x0), height: Y(s.old.lo) - Y(s.old.hi), fill: "none", stroke: "var(--accent)", "stroke-dasharray": "4 3", opacity: 0.55 * s.old.a * bo }, svg);
+        sv("rect", { x: X(s.box.x0), y: Y(s.box.hi), width: X(s.box.x1) - X(s.box.x0), height: Y(s.box.lo) - Y(s.box.hi), fill: "var(--accent-tint)", stroke: "var(--accent)", "stroke-width": 1.2, opacity: 0.95 * bo, "data-role": "exc-box", "data-lo": s.box.lo.toFixed(3), "data-hi": s.box.hi.toFixed(3), "data-x0": s.box.x0.toFixed(2), "data-x1": s.box.x1.toFixed(2) }, svg);
+        var mid = (s.box.lo + s.box.hi) / 2;
+        line(X(s.box.x0), Y(mid), X(s.box.x1), Y(mid), { stroke: "var(--accent)", "stroke-width": 1.4, "stroke-dasharray": "5 3", opacity: bo });
+        if (s.hl.a > 0.01) {
+          sv("rect", { x: X(s.hl.t) - 13, y: Y(s.hl.v) - 13, width: 26, height: 26, rx: 7, fill: "none", stroke: "var(--accent)", "stroke-width": 1.6, "stroke-dasharray": "3 2", opacity: s.hl.a * bo }, svg);
+          var hlt = sv("text", { x: X(s.hl.t) + 2, y: Y(s.hl.v) + 28, "class": "ax hlt", opacity: s.hl.a * bo, "text-anchor": "middle" }, svg); hlt.textContent = "previous value also sent";
+        }
+      } else {
+        var wedge = function (d) { var dtt = d.xe - d.x0; return { yu: d.y0 + d.up * dtt, yl: d.y0 + d.lo * dtt }; };
+        if (s.ghost.a > 0.01) {
+          var gd = wedge(s.ghost);
+          line(X(s.ghost.x0), Y(s.ghost.y0), X(s.ghost.xe), Y(gd.yu), { stroke: "var(--accent)", "stroke-dasharray": "4 3", opacity: 0.4 * s.ghost.a, "stroke-width": 1.5 });
+          line(X(s.ghost.x0), Y(s.ghost.y0), X(s.ghost.xe), Y(gd.yl), { stroke: "var(--accent)", "stroke-dasharray": "4 3", opacity: 0.4 * s.ghost.a, "stroke-width": 1.5 });
+        }
+        var d = s.doors, w = wedge(d);
+        sv("polygon", { points: [X(d.x0) + "," + Y(d.y0), X(d.xe) + "," + Y(w.yu), X(d.xe) + "," + Y(w.yl)].join(" "), fill: "var(--accent-tint)", opacity: 0.9 }, svg);
+        line(X(s.test.x0), Y(s.test.y0), X(s.test.t), Y(s.test.v), { stroke: "var(--text)", "stroke-width": 1.3, "stroke-dasharray": "2 3", "data-role": "test" });
+        line(X(d.x0), Y(d.y0), X(d.xe), Y(w.yu), { stroke: "var(--accent)", "stroke-width": 2, "data-role": "door-up", "data-slope": d.up.toFixed(4) });
+        line(X(d.x0), Y(d.y0), X(d.xe), Y(w.yl), { stroke: "var(--accent)", "stroke-width": 2, "data-role": "door-lo", "data-slope": d.lo.toFixed(4) });
+        var tu = sv("text", { x: X(d.xe) - 4, y: Y(w.yu) - 6, "class": "ax dl", "text-anchor": "end" }, svg); tu.textContent = "upper door";
+        var tl = sv("text", { x: X(d.xe) - 4, y: Y(w.yl) + 13, "class": "ax dl", "text-anchor": "end" }, svg); tl.textContent = "lower door";
+        for (i = 0; i < cfg.points.length; i++) {
+          o = s.pts[i]; if (o.a <= 0.01) continue;
+          var px = X(cfg.points[i].t);
+          line(px, Y(cfg.points[i].v + cfg.dev), px, Y(cfg.points[i].v - cfg.dev), { stroke: "var(--muted)", "stroke-width": 1.2, opacity: o.a });
+          line(px - 3, Y(cfg.points[i].v + cfg.dev), px + 3, Y(cfg.points[i].v + cfg.dev), { stroke: "var(--muted)", "stroke-width": 1.2, opacity: o.a });
+          line(px - 3, Y(cfg.points[i].v - cfg.dev), px + 3, Y(cfg.points[i].v - cfg.dev), { stroke: "var(--muted)", "stroke-width": 1.2, opacity: o.a });
+        }
+        if (s.hist.a > 0.01) {
+          var ar = sim.arch.map(function (k) { return cfg.points[k]; }), lastA = ar[ar.length - 1], snapP = cfg.points[cfg.points.length - 1];
+          sv("polyline", { points: ar.map(function (q) { return X(q.t) + "," + Y(q.v); }).join(" "), fill: "none", stroke: "var(--accent)", "stroke-width": 3, opacity: s.hist.a, "data-role": "hist" }, svg);
+          line(X(lastA.t), Y(lastA.v), X(snapP.t), Y(snapP.v), { stroke: "var(--accent)", "stroke-width": 2.4, "stroke-dasharray": "5 4", opacity: s.hist.a });
+        }
+      }
+      svg = keep;
+      for (i = 0; i < cfg.points.length; i++) circle(null, s.pts[i], i);
+      if (cfg.kind === "compression" && s.hist.a > 0.01) {
+        var sp = cfg.points[cfg.points.length - 1];
+        ["snapshot,", "not yet archived"].forEach(function (ln, j) { T(X(sp.t) + 14, Y(sp.v) + 1 + j * 11, ln, { "class": "ax hlt", opacity: s.hist.a }); });
+      }
+      if (cfg.kind === "exception") {
+        [[s.box.hi, "+ExcDev"], [s.box.lo, "−ExcDev"]].forEach(function (e) {
+          line(ml + pw, Y(e[0]), ml + pw + 6, Y(e[0]), { stroke: "var(--accent)", opacity: bo });
+          T(ml + pw + 8, Y(e[0]) + 3.5, e[1], { "class": "ax ed", opacity: bo });
+        });
+        if (s.q && s.q.a > 0.01) {
+          var qx = X(1.3), qw = X(4.9) - X(1.3), qy = mt + ph - 38, qh = 28, sIdx = info.sentIdx || [], n = sIdx.length;
+          var qg = sv("g", { opacity: s.q.a, "data-role": "queue" }, svg);
+          sv("rect", { x: qx, y: qy, width: qw, height: qh, rx: 6, fill: "var(--panel)", stroke: "var(--accent)", "stroke-width": 1.4 }, qg);
+          var qt = sv("text", { x: qx + 6, y: qy - 5, "class": "ax ed" }, qg); qt.textContent = "Queue on disk (buffer)";
+          sIdx.forEach(function (pi, j) {
+            var sx = qx + qw * (j + 1) / (n + 1), sy = qy + qh / 2, m = s.q.m[pi];
+            sv("circle", { cx: sx, cy: sy, r: 9, fill: "none", stroke: "var(--border)", "stroke-dasharray": "2 2" }, qg);
+            if (m > 0.01) {
+              var px2 = X(cfg.points[pi].t), py2 = Y(cfg.points[pi].v), cx = px2 + (sx - px2) * m, cy = py2 + (sy - py2) * m;
+              var ig = sv("g", { "data-role": "queued", "data-label": cfg.points[pi].label }, qg);
+              sv("circle", { cx: cx, cy: cy, r: 8, fill: "var(--accent)" }, ig);
+              var it = sv("text", { x: cx, y: cy + 3.5, "class": "pl", style: "fill:var(--accent-text)" }, ig); it.textContent = cfg.points[pi].label;
+            }
+          });
+          line(qx + qw, qy + qh / 2, ml + pw + 5, qy + qh / 2, { stroke: "var(--accent)", "stroke-width": 2, opacity: s.q.a });
+          ["to every", "Data Archive", "server"].forEach(function (ln, j) { T(ml + pw + 7, qy + 6 + j * 10, ln, { "class": "ax ed", style: "font-size:8px", opacity: s.q.a }); });
+        }
+      } else if (cfg.kind === "compression") {
+        var lg = info.legend || [];
+        lg.forEach(function (ln, j) { T(ml + pw - 6, mt + ph - 8 - (lg.length - 1 - j) * 13, ln, { "text-anchor": "end", "class": "ax lg2" }); });
+      }
+    }
+
+    function ui() {
+      var cinfo = F(state.step).info;
+      caption.textContent = "";
+      if (cinfo.head) { caption.appendChild(el("strong", "chead", cinfo.head)); caption.appendChild(document.createElement("br")); }
+      caption.appendChild(document.createTextNode(cinfo.caption));
+      if (cinfo.unmapped) caption.appendChild(el("div", "unmapped", "This direction has no edge on the map."));
+      lab.textContent = "Step " + (state.step + 1) + " of " + N;
+      var con = (cfg.steps && cfg.steps[state.step] && cfg.steps[state.step].calc) || [];
+      Object.keys(calcEls).forEach(function (k) { calcEls[k].classList.toggle("on", con.indexOf(k) >= 0); });
+      back.disabled = state.step === 0; nxt.disabled = state.step === N - 1;
+      trs.forEach(function (tr, i) { tr.className = i === state.step ? "cur" : ""; });
+      if (tog) {
+        tog.style.display = state.step === N - 1 ? "flex" : "none";
+        Object.keys(togBtns).forEach(function (m) { togBtns[m].className = state.mode === m ? "on" : ""; togBtns[m].setAttribute("aria-pressed", String(state.mode === m)); });
+      }
+    }
+    function show(i, animate) {
+      i = Math.max(0, Math.min(N - 1, i));
+      cancelAnimationFrame(state.raf);
+      var fr = F(i), from = state.cur || fr.n, to = fr.n, t0 = null;
+      state.step = i; ui();
+      if (animate && caption.isConnected && caption.scrollIntoView) caption.scrollIntoView({ block: "center" });
+      if (sim.draw) { svg.textContent = ""; sim.draw(svg, i); return; }
+      if (cfg.kind === "map-steps") { setRings(fr.info.nodes, fr.info.edges, fr.info.blocked); return; }
+      if (!animate || reduced.matches || !state.cur) { state.cur = to; paint(to, fr.info); return; }
+      function tick(ts) {
+        if (t0 === null) t0 = ts;
+        var k = Math.min(1, (ts - t0) / 250); k = k * k * (3 - 2 * k);
+        state.cur = lerp(from, to, k); paint(state.cur, fr.info);
+        if (k < 1) state.raf = requestAnimationFrame(tick);
+      }
+      state.raf = requestAnimationFrame(tick);
+    }
+    back.addEventListener("click", function () { show(state.step - 1, true); });
+    nxt.addEventListener("click", function () { show(state.step + 1, true); });
+    rst.addEventListener("click", function () { show(0, true); });
+    activeChart = function (d) { show(state.step + d, true); };
+    show(0, false);
+    return box;
+  }
+
+  /* ---------- panel ---------- */
+  function section(cls, title) {
+    var d = el("div", "sec " + cls);
+    d.appendChild(el("h3", null, title));
+    return d;
+  }
+  function oTag(o) { return null; }  // lesson origins stay in the data; only the "Lessons in this stage" line shows them
+  function list(items) {
+    var ul = el("ul");
+    items.forEach(function (t) {
+      var li = el("li"), isS = typeof t === "string";
+      if (!isS && t.kind) li.appendChild(el("span", "kind", t.kind + ": "));
+      li.appendChild(document.createTextNode(isS ? t : t.text));
+      var tg = isS ? null : oTag(t.origin); if (tg) li.appendChild(tg);
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+  function names(items) {
+    var ul = el("ul");
+    items.forEach(function (n) {
+      var li = el("li");
+      li.appendChild(el("span", "nm", n.name));
+      var extra = n.legacy ? " — legacy: " + n.legacy : n.note ? " — " + n.note : "";
+      if (extra) li.appendChild(el("span", "lg", extra));
+      var tg = oTag(n.origin); if (tg) li.appendChild(tg);
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  function collect(kind) {
+    var out = [], seen = {};
+    var srcKeys = { limits: ["limits", "misconceptions"], governance: ["governance", "decisions", "parking"] }[kind] || [kind];
+    scenes.forEach(function (s) {
+      if (s.kind) return;
+      srcKeys.reduce(function (a, k) { return a.concat(s[k] || []); }, []).concat((s.key || []).filter(function (x) { return srcKeys.indexOf(x.from) >= 0; })).forEach(function (x) {
+        var key = typeof x === "string" ? x : (x.name || x.t || x.text);
+        if (seen[key]) return;
+        seen[key] = true;
+        out.push({ scene: s.title, item: x });
+      });
+    });
+    return out;
+  }
+
+  function renderPanel() {
+    var p = $("panel");
+    p.textContent = "";
+    var s = idx === 0 ? null : scenes[idx - 1];
+    var src = s || data.intro;
+    p.appendChild(el("h2", null, s ? idx + ". " + s.title : src.title));
+    if (s) {
+      var ls = {}, scan = function (v) {
+        if (Array.isArray(v)) v.forEach(scan);
+        else if (v && typeof v === "object") { if (typeof v.origin === "string" && v.origin.indexOf("lesson:") === 0) ls[v.origin.slice(7)] = 1; Object.keys(v).forEach(function (k) { if (k !== "origin") scan(v[k]); }); }
+      };
+      if (!s.kind) { scan(s.key); scan(s.facts); scan(s.limits); scan(s.governance); if (!s.misconceptionsHidden) scan(s.misconceptions); scan(s.decisions); scan(s.parking); scan(s.names); scan(s.terms); scan(s.chart); scan(s.sections); }
+      var lk = Object.keys(ls);
+      if (lk.length) p.appendChild(el("div", "preview", "Lessons in this stage: " + lk.join(", ")));
+    }
+    if (s && s.preview) p.appendChild(el("div", "preview", s.preview));
+    if (s && s.remember) p.appendChild(el("div", "remember", s.remember));
+    activeChart = null;
+    setRings([], []);
+    var walk = s && s.chart ? chartBlock(s.chart) : null;
+    var story = !!(s && s.key);
+    if (src.what) {
+      var wp = el("p", "what");
+      var mm = null;
+      if (mm) {
+        wp.appendChild(document.createTextNode(mm[1] + " "));
+        var rest = el("span", "more", mm[2]); rest.hidden = true;
+        var tgl = el("button", "linkbtn", "more"); tgl.type = "button"; tgl.setAttribute("aria-expanded", "false");
+        tgl.addEventListener("click", function () { rest.hidden = !rest.hidden; tgl.textContent = rest.hidden ? "more" : "less"; tgl.setAttribute("aria-expanded", String(!rest.hidden)); });
+        wp.appendChild(rest); wp.appendChild(tgl);
+      } else wp.textContent = src.what;
+      p.appendChild(wp);
+    }
+    if (s && s.plain) { var pw = section("plain", "In plain words"); pw.appendChild(el("p", null, s.plain)); p.appendChild(pw); }
+    if (s && s.example) { var ex = section("example", "Example"); ex.appendChild(el("p", null, s.example)); p.appendChild(ex); }
+    if (walk) p.appendChild(walk);
+
+    if (s && s.kind === "collect") {
+      var items = collect(s.collect), last = null, box = null;
+      items.forEach(function (o) {
+        if (o.scene !== last) { last = o.scene; box = el("div", "sec " + (s.collect === "names" ? "names" : s.collect)); box.appendChild(el("h3", null, o.scene)); p.appendChild(box); }
+        if (s.collect === "names") { var ul = names([o.item]); box.appendChild(ul); }
+        else if (s.collect === "terms") { var dl = el("dl"), dt = el("dt", null, o.item.t), tg2 = oTag(o.item.origin); if (tg2) dt.appendChild(tg2); dl.appendChild(dt); dl.appendChild(el("dd", null, o.item.m)); box.appendChild(dl); }
+        else box.appendChild(list([o.item]));
+      });
+      if (!items.length) p.appendChild(el("p", "tbc", TODO));
+      return;
+    }
+
+    var host = p;
+    if (story) {
+      var kf = section("facts key", "Key facts"); kf.appendChild(list(s.key)); p.appendChild(kf);
+      var nItems = ["facts", "names", "limits", "misconceptions", "governance", "terms"].reduce(function (a, k) { return a + (s[k] || []).length; }, 0) + (s.sample ? 1 : 0) + (s.tbc ? 1 : 0);
+      if (nItems) {
+        var det = el("details", "moredetail");
+        det.appendChild(el("summary", null, "More detail (" + nItems + ")"));
+        det.setAttribute("data-count", String(nItems));
+        p.appendChild(det); host = det;
+      }
+      if (s.facts) { var ff = section("facts", "More facts"); ff.appendChild(list(s.facts)); host.appendChild(ff); }
+    } else if (src.facts) { var f = section("facts", s ? "Key facts" : "Controls"); f.appendChild(list(src.facts)); p.appendChild(f); }
+
+    if (s && s.sections) s.sections.forEach(function (x) { var sc = section(x.cls || "facts", x.title); sc.appendChild(list(x.items)); p.appendChild(sc); });
+
+    if (s && s.kind === "recap") {
+      var j = section("sample", "One value, stage by stage");
+      var ul = el("ul");
+      scenes.forEach(function (x) { if (x.sample) ul.appendChild(el("li", null, x.title + ": " + x.sample)); });
+      j.appendChild(ul);
+      p.appendChild(j);
+    }
+
+    if (s && s.sample) {
+      var sm = section("sample", "Sample data");
+      sm.appendChild(el("p", null, s.sample));
+      host.appendChild(sm);
+    }
+    if (s && s.names) { var n = section("names", "Names"); n.appendChild(names(s.names)); host.appendChild(n); }
+    if (s && s.limits) { var l = section("limits", "Limitations"); l.appendChild(list(s.limits)); host.appendChild(l); }
+    if (s && s.misconceptions && !s.misconceptionsHidden) {
+      var star = s.misconceptions.filter(function (x) { return (typeof x === "string" ? x : x.text).indexOf("★") === 0; }).slice(0, 1);
+      if (star.length) { var mc = section("limits misc", "Misconception to expect"); mc.appendChild(list(star)); host.appendChild(mc); }
+    }
+    if (s && s.governance) { var g = section("governance", "Governance"); g.appendChild(list(s.governance)); host.appendChild(g); }
+    if (s && s.terms) {
+      var t = section("terms", "Terms");
+      var dl2 = el("dl");
+      s.terms.forEach(function (x) { var dt2 = el("dt", null, x.t), tg3 = oTag(x.origin); if (tg3) dt2.appendChild(tg3); dl2.appendChild(dt2); dl2.appendChild(el("dd", null, x.m)); });
+      t.appendChild(dl2); host.appendChild(t);
+    }
+    if (s && s.tbc) host.appendChild(el("p", "tbc", s.tbc));
+    if (!s) p.appendChild(el("p", "tbc", data.contentNote));
+    if (walk) p.appendChild(walk.ctl);
+    p.scrollTop = 0;
+  }
+
+  function render() {
+    paintMap();
+    renderPanel();
+    $("progress").textContent = "Stage " + idx + " of " + N;
+    $("prev").disabled = idx === 0;
+    $("next").disabled = idx >= N;
+    $("jump").value = String(idx);
+    var nar = $("narration");
+    nar.textContent = "";
+    if (idx === 0) nar.appendChild(el("span", null, data.intro.narration));
+    else {
+      nar.appendChild(el("span", "stage-name", idx + ". " + scenes[idx - 1].title));
+      nar.appendChild(document.createTextNode(scenes[idx - 1].narration || TODO));
+    }
+    var ft = $("footer");
+    ft.textContent = "Learning diagram · edition " + (data.edition || "");
+    if (data.trademarkNote) { ft.appendChild(document.createElement("br")); ft.appendChild(document.createTextNode(data.trademarkNote)); }
+  }
+
+  function go(n) { idx = Math.max(0, Math.min(N, n)); render(); }
+
+  function init() {
+    buildMap();
+    var jump = $("jump");
+    var o0 = el("option", null, "0 · Start"); o0.value = "0"; jump.appendChild(o0);
+    scenes.forEach(function (s, i) { var o = el("option", null, (i + 1) + " · " + s.title); o.value = String(i + 1); jump.appendChild(o); });
+    jump.addEventListener("change", function () { go(+jump.value); jump.blur(); });
+    var show = $("show");
+    show.appendChild(el("span", null, "Show:"));
+    [["names", "Names"], ["limits", "Limits"], ["governance", "Governance"], ["sample", "Sample"], ["terms", "Terms"]].forEach(function (k) {
+      var lab = el("label"), cb = el("input");
+      cb.type = "checkbox"; cb.checked = true;
+      cb.addEventListener("change", function () { document.body.classList.toggle("hide-" + k[0], !cb.checked); });
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(k[1])); show.appendChild(lab);
+    });
+    var sl = $("storelegend");
+    [["record", "record (authoritative)"], ["cache", "cache (temporary)"], ["copy", "copy (rebuildable)"]].forEach(function (k, i) {
+      var sp = el("span", "lgi");
+      var sg = sv("svg", { width: 12, height: 12, viewBox: "0 0 12 12" }, sp);
+      sv("circle", { "class": "badge " + k[0], cx: 6, cy: 6, r: 4.5 }, sg);
+      sp.appendChild(document.createTextNode(" " + k[1]));
+      if (i === 0) sl.appendChild(document.createTextNode("Data stores: "));
+      sl.appendChild(sp); if (i < 2) sl.appendChild(document.createTextNode(" · "));
+    });
+    var zl = $("zonelegend");
+    zl.appendChild(document.createTextNode("Zones: "));
+    Object.keys(ZONES).forEach(function (k) { zl.appendChild(el("span", "zl " + k, ZONES[k])); });
+    $("next").addEventListener("click", function () { go(idx + 1); });
+    $("prev").addEventListener("click", function () { go(idx - 1); });
+    $("reset").addEventListener("click", function () { go(0); });
+    $("all").addEventListener("click", function () { go(N); });
+    $("full").addEventListener("click", toggleFullscreen);
+    render();
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+  }
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.shiftKey && (e.key === "ArrowRight" || e.key === "ArrowLeft") && activeChart) { e.preventDefault(); activeChart(e.key === "ArrowRight" ? 1 : -1); return; }
+    var t = e.target, tag = t.tagName, field = tag === "INPUT" || tag === "SELECT";
+    if (field && e.key !== "f" && e.key !== "F" && !(tag === "INPUT" && t.type === "checkbox" && (e.key === "ArrowRight" || e.key === "ArrowLeft"))) {
+      if (tag === "SELECT" || t.type === "range") return;
+    }
+    switch (e.key) {
+      case "ArrowRight": e.preventDefault(); go(idx + 1); break;
+      case "ArrowLeft": e.preventDefault(); go(idx - 1); break;
+      case " ": if (tag !== "BUTTON" && !field) { e.preventDefault(); go(idx + 1); } break;
+      case "[": if (activeChart) activeChart(-1); break;
+      case "]": if (activeChart) activeChart(1); break;
+      case "Home": e.preventDefault(); go(0); break;
+      case "End": e.preventDefault(); go(N); break;
+      case "f": case "F": if (!field || t.type === "checkbox") toggleFullscreen(); break;
+    }
+  });
+  init();
+})();
+</script>
+</body>
+</html>

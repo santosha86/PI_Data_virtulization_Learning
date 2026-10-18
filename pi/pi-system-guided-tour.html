@@ -116,8 +116,8 @@ footer { padding-bottom: 8px; font-size: 0.72rem; color: var(--muted); }
 .node .l2 { font-size: 8.5px; fill: var(--muted); text-anchor: middle; }
 .node .ic { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hub circle { fill: var(--accent); }
-.node .ring { fill: none; stroke: var(--warn); stroke-width: 3; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
-.node[data-ring="1"] .ring { opacity: 1; }
+.node rect.ring, .node.focus rect.ring, .node.seen rect.ring { fill: none; stroke: var(--warn); stroke-width: 3.5; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.node[data-ring="1"] rect.ring { opacity: 1; }
 .node[data-ring="1"] { opacity: 1; }
 .badge { display: none; stroke: var(--accent); stroke-width: 1.6; }
 svg.badges .badge, #storelegend .badge { display: block; }
@@ -126,6 +126,13 @@ svg.badges .badge, #storelegend .badge { display: block; }
 .badge.copy { fill: var(--bg); stroke-dasharray: 2 1.6; }
 #storelegend .lgi svg { vertical-align: -2px; }
 .chead { color: var(--accent); }
+details.moredetail { margin: 10px 0 4px; border-top: 1px solid var(--border); padding-top: 6px; }
+details.moredetail > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.86rem; }
+.sec.key ul { gap: 4px; }
+.edge[data-ring="1"] { stroke: var(--warn); stroke-width: 5; opacity: 1; stroke-dasharray: none; animation: none; }
+.org { font-size: 0.68rem; color: var(--muted); white-space: nowrap; }
+.kind { font-size: 0.72rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
+.unmapped { font-size: 0.76rem; color: var(--muted); font-style: italic; margin-top: 4px; }
 
 @media (max-width: 900px) {
   main { grid-template-columns: 1fr; }
@@ -183,7 +190,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "Use the jump list to revisit any stage, and the Show boxes to hide sections you do not need.",
       "The last five stages gather everything in one place: limitations, governance, names, terms and one value's journey. Start there when you need a quick refresher.",
       "Names, legacy names and limits were checked against public sources. The last stage lists the sources and the points still to verify.",
-      "On stages with a walkthrough (exception, compression, data stores, enterprise tier), use the step buttons under the chart, or Shift+Right and Shift+Left, to go one step at a time."
+      "On stages with a walkthrough (exception, compression, data stores, hosting, enterprise tier, integration, availability), use the step buttons under the chart, or Shift+Right and Shift+Left, to go one step at a time."
     ]
   },
   "map": {
@@ -514,7 +521,10 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "facts": [
         "The unit of data is a timestamped value with a quality flag, stored against a PI point (also called a tag).",
         "Two stores matter: the Data Archive keeps the time series; Asset Framework (AF) keeps the asset model.",
-        "Everything else collects data into those stores or reads data out of them.",
+        {
+          "text": "Five capabilities: collect, store, contextualise, calculate, serve.",
+          "origin": "lesson:A1"
+        },
         "Timestamps are stored in UTC; displays convert to local time.",
         "The Data Archive and AF Server run on Windows Server. AVEVA Adapters (and Edge Data Store) also run on Linux."
       ],
@@ -534,7 +544,10 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       ],
       "limits": [
         "Not a control system: PI observes the process, it does not run it.",
-        "Not a general-purpose relational or analytics database; it is optimised for time-series reads."
+        {
+          "text": "PI is the system of record for operational time series.",
+          "origin": "lesson:A1"
+        }
       ],
       "governance": [
         "Treat PI as the operational record of the process: agree who owns each data set and who may change it."
@@ -570,7 +583,10 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "what": "Sensors, transmitters, analysers and meters turn physical quantities into signals. Mobile equipment reports position and payload over wireless networks.",
       "facts": [
         "Classic analogue signal: 4–20 mA. HART adds digital data on the same wiring; fieldbus is fully digital.",
-        "These devices usually feed a control system, not PI directly.",
+        {
+          "text": "PI sees only what the control layer exposes.",
+          "origin": "lesson:B1"
+        },
         "Mobile equipment data often arrives through a fleet management system rather than the DCS."
       ],
       "sample": "A pressure transmitter on pump P-101 discharge reads 4.237 bar at 10:00:01.250.",
@@ -597,7 +613,10 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         "Control loops run in milliseconds to seconds; current values are exposed, long-term history is not kept.",
         "OPC DA (Classic) depends on Microsoft COM/DCOM. OPC UA does not: it uses TCP and X.509 certificates, with a simple firewall profile.",
         "Microsoft's DCOM hardening (enforced by default on supported Windows versions from 2023) broke many OPC Classic connections; the OPC Foundation advises moving to OPC UA, or keeping COM local to one machine.",
-        "Modbus and vendor protocols are also common.",
+        {
+          "text": "Values are read via OPC DA/UA, Modbus or vendor protocols.",
+          "origin": "lesson:B1"
+        },
         "This is the most protected part of the plant network."
       ],
       "sample": "DCS tag PI101_PV = 4.237 bar, quality Good, exposed by the OPC UA server.",
@@ -643,7 +662,15 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "facts": [
         "Typical sources: relational databases, files, other historians, lab systems, fleet management.",
         "Data is often lower frequency or batch, and carries its own time zone and clock.",
-        "The PI Interface for Relational Database reads any database with an ODBC driver (for example Oracle or SQL Server); it supports history recovery, exception reporting and interface failover."
+        "The PI Interface for Relational Database reads any database with an ODBC driver (for example Oracle or SQL Server); it supports history recovery, exception reporting and interface failover.",
+        {
+          "text": "Fleet, energy and emissions systems keep their own history.",
+          "origin": "lesson:D1.1"
+        },
+        {
+          "text": "Each needs a role: feed PI, federate, or stay separate.",
+          "origin": "lesson:D1.1"
+        }
       ],
       "names": [
         {
@@ -657,7 +684,14 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "governance": [
         "Name a system of record for each data set so the same fact is not collected twice with different values."
       ],
-      "tbc": "File and stream loading: To be covered (the file loader product name could not be confirmed)."
+      "tbc": "File and stream loading: To be covered (the file loader product name could not be confirmed).",
+      "terms": [
+        {
+          "t": "CEMS",
+          "m": "Continuous emissions monitoring system.",
+          "origin": "lesson:D1.1"
+        }
+      ]
     },
     {
       "id": "collection",
@@ -677,7 +711,11 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         "Interfaces are built on the UniInt framework and support features such as exception reporting, history recovery and failover.",
         "AVEVA Adapters run on Windows and Linux (including containers) and send data to PI Server or Edge Data Store.",
         "Each point has a scan class (how often the source is polled) and exception settings.",
-        "Connections flow outward from the plant to the server."
+        "Connections flow outward from the plant to the server.",
+        {
+          "text": "Buffering prevents data loss during outages.",
+          "origin": "lesson:B1"
+        }
       ],
       "names": [
         {
@@ -711,6 +749,23 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
           "t": "Point source",
           "m": "A label on each tag saying which interface owns it."
         }
+      ],
+      "misconceptions": [
+        {
+          "text": "UNS replaces the historian — Reality: A broker holds current state, not years of history",
+          "origin": "lesson:E3",
+          "kind": "misconception"
+        },
+        {
+          "text": "OPC UA is just a protocol — Reality: Its information models carry structure that helps AF",
+          "origin": "lesson:E3",
+          "kind": "misconception"
+        },
+        {
+          "text": "★ Following ISA-95 means copying it exactly — Reality: Use it as reference vocabulary, adapted to the business",
+          "origin": "lesson:E3",
+          "kind": "misconception"
+        }
       ]
     },
     {
@@ -728,9 +783,16 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "facts": [
         "The previous value is also sent when a new value passes, to keep the slope of the signal.",
         "The buffer (PI Buffer Subsystem) holds data during network or server outages and forwards it when the link returns.",
-        "Exception settings are per point: deviation (ExcDev, or ExcDevPercent of span), minimum time and maximum time (ExcMax).",
+        {
+          "text": "ExcMax sends a heartbeat value.",
+          "origin": "lesson:B2"
+        },
         "Commonly cited defaults: ExcDevPercent 0.1 %, ExcMax 600 s. Verify for your version.",
-        "Rule of thumb: ExcDev about half of CompDev."
+        "Rule of thumb: ExcDev about half of CompDev.",
+        {
+          "text": "Send only if the change exceeds the exception deviation.",
+          "origin": "lesson:B2"
+        }
       ],
       "sample": "4.237 differs from the last sent value 4.105 by 0.132, more than the exception deviation of 0.1, so it is sent and buffered until the archive confirms receipt.",
       "chart": {
@@ -837,7 +899,10 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "what": "The server that stores time series. It holds the point database, the snapshot (latest value per point) and the archive files (history).",
       "facts": [
         "Snapshot subsystem: the current value of each point.",
-        "Archive subsystem: history in archive files; new values reach them through the event queue, a write cache.",
+        {
+          "text": "Archive files are the history and the system of record.",
+          "origin": "lesson:B1.1"
+        },
         "Late or backfilled values skip compression.",
         "Reads return recorded, interpolated, plot-optimised or summary values (average, minimum, maximum, total).",
         "Each point has a type (floating point, integer, digital, string), engineering units and a step flag: step holds the value until the next one, otherwise values are interpolated.",
@@ -887,12 +952,18 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "remember": "Exception = collector filter. Compression = archive filter. Both are lossy.",
       "what": "When a new value arrives, the previous snapshot is tested. Two door slopes run from the last archived value to each snapshot, plus and minus the compression deviation. If the new value's slope from the archived value falls inside the doors, the previous snapshot is dropped; if outside, it is archived and new doors start from it.",
       "facts": [
-        "The previous snapshot is the value tested when a new one arrives.",
+        {
+          "text": "Doors from the last archived value decide what is kept.",
+          "origin": "lesson:B3"
+        },
         "Compression deviation (CompDev, or CompDevPercent of span) is the allowed error band; compression maximum time (CompMax) forces a value to be kept after a quiet period. One source recommends at most one work shift (8 hours).",
         "CompMin is normally 0 for points fed by exception-reporting interfaces.",
         "Commonly cited defaults: CompDevPercent 0.2 %, CompMax 28 800 s. Verify for your version.",
         "Step points do not use swinging door compression, and deviations are ignored for digital and string points.",
-        "Dropped values are gone for good; this is the main fidelity trade-off."
+        {
+          "text": "Exception and compression errors add up.",
+          "origin": "lesson:B3"
+        }
       ],
       "chart": {
         "kind": "compression",
@@ -972,11 +1043,21 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "remember": "AF stores structure; the Data Archive stores values.",
       "what": "AF models the plant as a hierarchy of assets. Each asset has attributes that point to PI points, so people find “Pump P-101 discharge pressure” instead of a tag name.",
       "facts": [
-        "Elements represent assets and are built from templates, so 200 pumps share one definition.",
-        "Attributes can be fixed values, formulas or references to PI points and tables.",
+        {
+          "text": "Elements are built from templates; attributes reference PI points.",
+          "origin": "lesson:B4"
+        },
         "Event Frames record time-bounded events such as downtime, batches or trips.",
         "AF stores structure and configuration, not the time series; the values stay in the Data Archive.",
-        "The AF database sits in SQL Server; engineers edit it with PI System Explorer."
+        "The AF database sits in SQL Server; engineers edit it with PI System Explorer.",
+        {
+          "text": "Event Frames live in the AF SQL database, not the archive.",
+          "origin": "lesson:B1.1"
+        },
+        {
+          "text": "Store EAM identifiers on AF elements.",
+          "origin": "lesson:E2"
+        }
       ],
       "sample": "Tag PI101_PV becomes Site A > Plant 2 > Pump P-101 > Discharge pressure (bar).",
       "names": [
@@ -1016,6 +1097,28 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
           "t": "Event Frame",
           "m": "A record of something that happened between a start and an end time."
         }
+      ],
+      "misconceptions": [
+        {
+          "text": "★ AF must copy the EAM hierarchy exactly — Reality: Hierarchies may differ for process views, but keys must map",
+          "origin": "lesson:E2",
+          "kind": "misconception"
+        },
+        {
+          "text": "A mapping spreadsheet is enough — Reality: Drifts within months; needs an owned, automated sync",
+          "origin": "lesson:E2",
+          "kind": "misconception"
+        },
+        {
+          "text": "Alignment is a one-off project — Reality: Assets change continuously; it is an ongoing process",
+          "origin": "lesson:E2",
+          "kind": "misconception"
+        },
+        {
+          "text": "Matching names is enough — Reality: Stable IDs matter; names change",
+          "origin": "lesson:E2",
+          "kind": "misconception"
+        }
       ]
     },
     {
@@ -1034,20 +1137,27 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "facts": [
         "Analyses run when an input changes or on a schedule.",
         "Types include expressions, roll-ups across assets and event frame generation.",
-        "Results are written to PI points and Event Frames."
+        "Results are written to PI points and Event Frames.",
+        {
+          "text": "Each production figure has one record and one formula.",
+          "origin": "lesson:E1.1"
+        }
       ],
       "sample": "If discharge pressure stays below 3.0 bar for 5 minutes, a “Low pressure” event frame starts and the shift engineer is notified.",
       "names": [
         {
-          "name": "PI Asset Analytics",
-          "note": "AF analyses, run by the PI Analysis Service; expressions use Performance Equation syntax"
+          "name": "PI Analysis Service",
+          "legacy": "Asset Analytics",
+          "origin": "lesson:A2"
         },
         {
-          "name": "PI Notifications"
+          "name": "PI Notifications",
+          "origin": "lesson:A2"
         },
         {
-          "name": "PI ACE (Advanced Computing Engine)",
-          "note": "legacy; retirement announced in 2022 with Asset Analytics as successor; verify the current lifecycle date"
+          "name": "Performance equations, ACE",
+          "note": "legacy",
+          "origin": "lesson:A2"
         }
       ],
       "limits": [
@@ -1066,6 +1176,23 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         {
           "t": "Roll-up",
           "m": "A calculation that combines values from many assets, such as a plant total."
+        }
+      ],
+      "misconceptions": [
+        {
+          "text": "PI totals are the official production — Reality: Raw totals miss lab corrections, stock moves and adjustments",
+          "origin": "lesson:E1.1",
+          "kind": "misconception"
+        },
+        {
+          "text": "MES and PI should match exactly — Reality: Timing, rounding and corrections differ; reconcile, do not duplicate",
+          "origin": "lesson:E1.1",
+          "kind": "misconception"
+        },
+        {
+          "text": "★ Calculate the same KPI in both — Reality: Two formulas drift; one record, one formula",
+          "origin": "lesson:E1.1",
+          "kind": "misconception"
         }
       ]
     },
@@ -1152,7 +1279,11 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         "Event Frames live in the AF SQL database, not the archive.",
         "A collective replicates: corruption and deletions spread to all members; a backup is a point-in-time copy.",
         "The enterprise PI is a copy, possibly a subset or shorter retention; not a tested recovery source.",
-        "Buffers are sized for outages, not for keeping data."
+        "Buffers are sized for outages, not for keeping data.",
+        {
+          "text": "Back up with two methods: PI Data Archive backup and SQL Server backups.",
+          "origin": "lesson:B1.1"
+        }
       ],
       "terms": [
         {
@@ -1166,6 +1297,33 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         {
           "t": "Copy",
           "m": "A duplicate that can be rebuilt from the record."
+        }
+      ],
+      "misconceptions": [
+        {
+          "text": "★ Back up the PI server and we are safe — Reality: Two methods at least: PI Data Archive backup, plus SQL backups for AF and PI Vision",
+          "origin": "lesson:B1.1",
+          "kind": "misconception"
+        },
+        {
+          "text": "Event Frames live in the archive — Reality: They live in the AF SQL database; lose AF, lose event history",
+          "origin": "lesson:B1.1",
+          "kind": "misconception"
+        },
+        {
+          "text": "A collective is a backup — Reality: Members replicate; corruption and deletions spread. A backup is point-in-time",
+          "origin": "lesson:B1.1",
+          "kind": "misconception"
+        },
+        {
+          "text": "The enterprise PI is our backup — Reality: A copy, maybe a subset or shorter retention; not a tested recovery source",
+          "origin": "lesson:B1.1",
+          "kind": "misconception"
+        },
+        {
+          "text": "Buffers are durable storage — Reality: Temporary, sized for outages, not for keeping data",
+          "origin": "lesson:B1.1",
+          "kind": "misconception"
         }
       ]
     },
@@ -1198,7 +1356,15 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         "PI DataLink: Excel add-in for engineers.",
         "PI Web API: REST interface for applications and integration; it also receives OMF data (used by Edge Data Store).",
         "PI Integrator for Business Analytics: publishes shaped, tabular datasets to SQL, data lakes and BI tools.",
-        "Also: PI SQL Client (RTQP) for SQL access, and AF SDK for .NET applications."
+        "Also: PI SQL Client (RTQP) for SQL access, and AF SDK for .NET applications.",
+        {
+          "text": "Recorded and interpolated values give different answers.",
+          "origin": "lesson:C"
+        },
+        {
+          "text": "Every tool is a consumer.",
+          "origin": "lesson:E4"
+        }
       ],
       "sample": "A PI Vision trend shows the pressure; hourly averages flow to the data platform; an anomaly model flags pump degradation.",
       "names": [
@@ -1228,7 +1394,6 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         }
       ],
       "limits": [
-        "A few heavy queries (many tags, long ranges, fine intervals) can slow PI for everyone.",
         "PI shows only what was collected: gaps and poor quality are visible, not repaired.",
         "Older PI Integrator 'PI Views' were deprecated for a security vulnerability (training material, 2020 release). Verify before using them."
       ],
@@ -1240,16 +1405,167 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "tbc": "Data virtualisation of PI data (querying it in place without copying): To be covered in phase 2.",
       "terms": [
         {
-          "t": "Recorded value",
-          "m": "A value exactly as stored."
-        },
-        {
           "t": "Interpolated value",
           "m": "A calculated value at an exact time between two stored values."
         },
         {
           "t": "Summary",
           "m": "Average, minimum, maximum or total over a time range."
+        }
+      ],
+      "misconceptions": [
+        {
+          "text": "More hardware fixes slow PI — Reality: Most slowness is query shape: huge ranges, too many tags, needless interpolation",
+          "origin": "lesson:D3",
+          "kind": "misconception"
+        },
+        {
+          "text": "Analytics should query PI directly — Reality: Large multi-year scans belong on the data platform copy",
+          "origin": "lesson:D3",
+          "kind": "misconception"
+        },
+        {
+          "text": "★ Compression does not affect scale — Reality: It drives disk, backup time and read speed",
+          "origin": "lesson:D3",
+          "kind": "misconception"
+        },
+        {
+          "text": "Sizing once is enough — Reality: Tags, users and analyses grow; monitor and resize",
+          "origin": "lesson:D3",
+          "kind": "misconception"
+        }
+      ],
+      "misconceptionsHidden": true
+    },
+    {
+      "id": "hosting",
+      "title": "Hosting and compute",
+      "origin": "lesson:D1.2",
+      "narration": "Many PI outages are hosting problems, not PI faults: disks, SQL Server, Kerberos, time sync.",
+      "nodes": [],
+      "edges": [],
+      "remember": "Most hosting failures come from dependencies.",
+      "what": "For every component: which role, which zone, what kind of machine, and what it depends on.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: how PI Vision reads data as each user",
+        "steps": [
+          {
+            "title": "Sign in",
+            "nodes": [
+              "vision"
+            ],
+            "caption": "User opens PI Vision with their Windows identity",
+            "origin": "lesson:D1.2"
+          },
+          {
+            "title": "Hop 1",
+            "nodes": [
+              "vision"
+            ],
+            "caption": "Browser authenticates to the IIS web server",
+            "origin": "lesson:D1.2"
+          },
+          {
+            "title": "Delegate",
+            "nodes": [
+              "vision",
+              "hub"
+            ],
+            "edges": [
+              "e12"
+            ],
+            "caption": "Kerberos delegation lets the server act for the user",
+            "origin": "lesson:D1.2"
+          },
+          {
+            "title": "Hop 2",
+            "nodes": [
+              "vision",
+              "hub",
+              "archive",
+              "af"
+            ],
+            "edges": [
+              "e10",
+              "e11",
+              "e12"
+            ],
+            "caption": "Server queries Data Archive and AF as that user",
+            "origin": "lesson:D1.2"
+          },
+          {
+            "title": "Filter",
+            "nodes": [
+              "archive",
+              "af"
+            ],
+            "caption": "PI returns only what the user may see",
+            "origin": "lesson:D1.2"
+          }
+        ]
+      },
+      "terms": [
+        {
+          "t": "SPN",
+          "m": "Service names registered for the web account.",
+          "origin": "lesson:D1.2"
+        },
+        {
+          "t": "Kerberos delegation",
+          "m": "Lets the server act for the user; constrained, to the Data Archive and AF servers.",
+          "origin": "lesson:D1.2"
+        },
+        {
+          "t": "gMSA",
+          "m": "Group-managed service account: the group-managed option for the web account, alongside custom service accounts.",
+          "origin": "lesson:D1.2"
+        }
+      ],
+      "misconceptions": [
+        {
+          "text": "★ PI Vision reads PI with its own account — Reality: It acts for each user via Kerberos delegation; misconfiguration means prompts and empty displays",
+          "origin": "lesson:D1.2",
+          "kind": "misconception"
+        },
+        {
+          "text": "One big VM is simplest — Reality: Fine when small; at scale archive I/O, SQL and analyses compete",
+          "origin": "lesson:D1.2",
+          "kind": "misconception"
+        },
+        {
+          "text": "A load balancer gives HA for everything — Reality: Suits the stateless web tier; archive uses collectives, SQL uses Always On",
+          "origin": "lesson:D1.2",
+          "kind": "misconception"
+        },
+        {
+          "text": "A cloud VM is cloud-native — Reality: IaaS is still a Windows server to patch and back up",
+          "origin": "lesson:D1.2",
+          "kind": "misconception"
+        },
+        {
+          "text": "Virtualisation is risky for PI — Reality: Supported; real risks are over-commitment, live snapshots, clock drift",
+          "origin": "lesson:D1.2",
+          "kind": "misconception"
+        },
+        {
+          "text": "Hosting is just IT's job — Reality: OT zones, patch windows and antivirus exclusions need OT involvement",
+          "origin": "lesson:D1.2",
+          "kind": "misconception"
+        }
+      ],
+      "facts": [
+        {
+          "text": "Each role has dependencies: SQL Server, IIS, Active Directory.",
+          "origin": "lesson:D1.2"
+        },
+        {
+          "text": "The double hop needs Kerberos delegation.",
+          "origin": "lesson:D1.2"
+        },
+        {
+          "text": "Size variants: small = one server; medium = SQL and web tier separated; large = collective, SQL Always On, load-balanced web tier.",
+          "origin": "lesson:D1.2"
         }
       ]
     },
@@ -1274,7 +1590,15 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         "Asset models are kept in step with the sites.",
         "Latency is typically seconds; the copy is not the source for control.",
         "PI Server 2023 added the PI to Data Hub (now PI to CONNECT) agent as an installable feature in the server kit.",
-        "A reverse agent, CONNECT to PI, can write cloud streams back into PI points."
+        "A reverse agent, CONNECT to PI, can write cloud streams back into PI points.",
+        {
+          "text": "Topologies: site, hub, multi-tier, hybrid.",
+          "origin": "lesson:D1"
+        },
+        {
+          "text": "PI to PI is less robust than n-way buffering for real-time failover.",
+          "origin": "lesson:D1"
+        }
       ],
       "sample": "The enterprise PI server receives pump P-101 discharge pressure from every site within seconds.",
       "names": [
@@ -1319,7 +1643,166 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
           "text": "Data diode: hardware with no return path; an agent on each side copies data across.",
           "result": "With a diode: no write-back, no direct IT queries to site PI, and any IT query must use a copy on the IT side, which matters for data virtualisation."
         }
-      }
+      },
+      "misconceptions": [
+        {
+          "text": "A hub can replace site servers — Reality: Plants keep local servers to collect and operate through WAN outages",
+          "origin": "lesson:D1",
+          "kind": "misconception"
+        },
+        {
+          "text": "PI to PI equals n-way buffering — Reality: If the primary fails, a PI to PI secondary has history but not real-time data",
+          "origin": "lesson:D1",
+          "kind": "misconception"
+        },
+        {
+          "text": "★ Replicate everything to the hub — Reality: Volume, licence and governance cost; replicate what enterprise users need",
+          "origin": "lesson:D1",
+          "kind": "misconception"
+        },
+        {
+          "text": "A distributed collective is a DR plan — Reality: It helps, but backups and tested restores are still needed",
+          "origin": "lesson:D1",
+          "kind": "misconception"
+        },
+        {
+          "text": "Topology is a one-time choice — Reality: Sites grow; size variants must allow moving up",
+          "origin": "lesson:D1",
+          "kind": "misconception"
+        }
+      ]
+    },
+    {
+      "id": "integration",
+      "title": "Integration directions and patterns",
+      "origin": "lesson:E1",
+      "narration": "PI exchanges data with many systems; without patterns, connections multiply into an unmanaged web.",
+      "nodes": [],
+      "edges": [],
+      "remember": "Publish once, consume many.",
+      "what": "How data and events move between PI and other systems: direction, style and pattern.",
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: five integration directions",
+        "steps": [
+          {
+            "title": "Southbound",
+            "caption": "Raw process data. Example: DCS, PLC via OPC UA. Key concern: Reliability, buffering.",
+            "origin": "lesson:E1",
+            "nodes": [
+              "ctrl",
+              "coll"
+            ],
+            "edges": [
+              "e2"
+            ]
+          },
+          {
+            "title": "Lateral",
+            "caption": "Results, events, context. Example: LIMS results in; totals to MES. Key concern: Which system owns each number.",
+            "origin": "lesson:E1",
+            "unmapped": true
+          },
+          {
+            "title": "Northbound",
+            "caption": "History, KPIs, events. Example: Data platform, ERP, BI, AI. Key concern: DMZ crossing, load on PI.",
+            "origin": "lesson:E1",
+            "nodes": [
+              "integrator",
+              "webapi",
+              "platform"
+            ],
+            "edges": [
+              "e16",
+              "e17"
+            ]
+          },
+          {
+            "title": "Peer",
+            "caption": "Replicated tags and models. Example: Site to enterprise; PI to CONNECT. Key concern: Consistency, licences.",
+            "origin": "lesson:E1",
+            "nodes": [
+              "archive",
+              "ent",
+              "cloud"
+            ],
+            "edges": [
+              "e18",
+              "e19",
+              "e20"
+            ]
+          },
+          {
+            "title": "Write-back",
+            "caption": "Predictions, targets. Example: ML scores as PI tags. Key concern: Advisory only; never control.",
+            "origin": "lesson:E1",
+            "unmapped": true
+          },
+          {
+            "title": "Rules",
+            "caption": "Lower zone pushes up; upper zone never reaches down · Publish once, consume many · Every link has an owner and a contract · Write-back stays advisory.",
+            "origin": "lesson:E1"
+          }
+        ]
+      },
+      "misconceptions": [
+        {
+          "text": "★ Connect every consumer directly to PI — Reality: Spaghetti and load; publish once through a mediated layer",
+          "origin": "lesson:E1",
+          "kind": "misconception"
+        },
+        {
+          "text": "PI can be the enterprise integration bus — Reality: Built for time series, not transactions or messages",
+          "origin": "lesson:E1",
+          "kind": "misconception"
+        },
+        {
+          "text": "Write-back is harmless — Reality: Only advisory values; nothing from IT writes to control",
+          "origin": "lesson:E1",
+          "kind": "misconception"
+        },
+        {
+          "text": "Integration is an IT detail — Reality: Direction, contracts and ownership are architecture decisions",
+          "origin": "lesson:E1",
+          "kind": "misconception"
+        }
+      ],
+      "facts": [
+        {
+          "text": "Five directions: southbound, lateral, northbound, peer, write-back.",
+          "origin": "lesson:E1"
+        },
+        {
+          "text": "Publish once through a mediated layer.",
+          "origin": "lesson:E1"
+        },
+        {
+          "text": "Write-back stays advisory.",
+          "origin": "lesson:E1"
+        }
+      ],
+      "governance": [
+        {
+          "text": "Lower zone pushes up; upper zone never reaches down.",
+          "origin": "lesson:E1"
+        },
+        {
+          "text": "Every link has an owner and a contract.",
+          "origin": "lesson:E1"
+        }
+      ],
+      "terms": [
+        {
+          "t": "ISA-95",
+          "m": "Levels and equipment hierarchy model.",
+          "origin": "lesson:E3"
+        },
+        {
+          "t": "Unified Namespace",
+          "m": "One broker as real-time hub, ISA-95 structured; PI publishes and subscribes, not the hub.",
+          "origin": "lesson:E3"
+        }
+      ]
     },
     {
       "id": "security",
@@ -1337,10 +1820,18 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "remember": "Outward-only flows; business access goes to the enterprise copy.",
       "what": "The plant network stays protected: PI collects from it but needs no inbound paths into it. Business access goes to the enterprise copy.",
       "facts": [
-        "Zones, inside to outside: control network, site PI server, industrial DMZ, enterprise. IEC 62443 calls these zones joined by conduits, where firewalls or data diodes enforce policy.",
-        "The industrial DMZ is the only authorised path between operations and corporate IT; one-way needs can use data diodes.",
-        "Recommended: Windows Integrated Security, with Windows groups mapped to PI identities through PI mappings; access rules sit on points and AF objects.",
-        "PI trusts (fixed connection credentials) are legacy and weaker; they and explicit logins are disabled by default in newer client software.",
+        {
+          "text": "Zones and conduits, with a DMZ between OT and IT.",
+          "origin": "lesson:D4"
+        },
+        {
+          "text": "Windows identities mapped to PI; retire legacy trusts.",
+          "origin": "lesson:D4"
+        },
+        {
+          "text": "Legacy trusts grant access by host or address; replace with Windows identities and mappings.",
+          "origin": "lesson:D4"
+        },
         "PI Server 2023 added optional OpenID Connect (claims-based) sign-in and TLS certificates; Windows Integrated Security still works.",
         "Business-facing web tools are commonly served from the enterprise tier or DMZ."
       ],
@@ -1377,11 +1868,54 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
           "m": "Give each user or service only the access it needs."
         },
         {
-          "t": "IEC 62443",
-          "m": "The international standard series for industrial control system security, including zones and conduits."
+          "t": "Purdue model",
+          "m": "Levels 0–5, from field devices to enterprise systems.",
+          "origin": "lesson:D4"
+        },
+        {
+          "t": "Zones and conduits (IEC 62443)",
+          "m": "Group assets by trust; control every connection between groups.",
+          "origin": "lesson:D4"
+        },
+        {
+          "t": "Data diode",
+          "m": "Hardware one-way link: no return path, enforced by physics.",
+          "origin": "lesson:D4"
+        },
+        {
+          "t": "Defence in depth",
+          "m": "Several independent layers, so one failure is not a breach.",
+          "origin": "lesson:D4"
         }
       ],
-      "preview": "Preview: deepened in D4"
+      "preview": "Preview: deepened in D4",
+      "misconceptions": [
+        {
+          "text": "★ A firewall between OT and IT is enough — Reality: Needs a DMZ, outward-only flows and no shared accounts across zones",
+          "origin": "lesson:D4",
+          "kind": "misconception"
+        },
+        {
+          "text": "PI only reads, so it is safe — Reality: Output points can write to control systems; they need strict control",
+          "origin": "lesson:D4",
+          "kind": "misconception"
+        },
+        {
+          "text": "Legacy trusts are fine — Reality: They grant access by host or address; replace with Windows identities and mappings",
+          "origin": "lesson:D4",
+          "kind": "misconception"
+        },
+        {
+          "text": "Everyone may read operational data — Reality: Production and quality data can be commercially sensitive; classify it",
+          "origin": "lesson:D4",
+          "kind": "misconception"
+        },
+        {
+          "text": "Security is the cyber team's job — Reality: Architecture decides zones, flows and identities",
+          "origin": "lesson:D4",
+          "kind": "misconception"
+        }
+      ]
     },
     {
       "id": "availability",
@@ -1399,7 +1933,10 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       "remember": "Collective = availability. Backup = recovery. Test both.",
       "what": "Each layer has its own protection, and none replaces tested backups.",
       "facts": [
-        "Collectors: UniInt interface failover uses a backup instance coordinated through PI points and a shared file; it covers loss of the data source or of the Data Archive connection. The backup must stay connected to the source.",
+        {
+          "text": "HA differs per component: failover, n-way buffering, collective, load balancer, failover cluster.",
+          "origin": "lesson:D2"
+        },
         "Data Archive: a collective is one primary plus secondaries; secondaries replicate points, configuration and security; clients spread connections across members and fail over.",
         "Keep collective members on the same version (community guidance).",
         "AF: a load-balanced AF application service with the AF SQL database in a SQL Server Always On availability group. AF collectives are no longer recommended.",
@@ -1415,7 +1952,10 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       ],
       "limits": [
         "A collective is high availability, not a backup: it replicates mistakes and deletions too.",
-        "Buffers cover only outages shorter than their size allows.",
+        {
+          "text": "Buffers must outlast the restore time (RTO).",
+          "origin": "lesson:D2"
+        },
         "Interface failover support depends on the interface; check each one."
       ],
       "governance": [
@@ -1428,9 +1968,126 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         {
           "t": "RPO / RTO",
           "m": "How much data you can lose, and how long recovery may take."
+        },
+        {
+          "t": "HA",
+          "m": "High availability: keeps PI running through a single failure.",
+          "origin": "lesson:D2"
+        },
+        {
+          "t": "DR",
+          "m": "Disaster recovery: recovers PI elsewhere from bigger failures, such as losing a site or the data.",
+          "origin": "lesson:D2"
         }
       ],
-      "preview": "Preview: deepened in D2"
+      "preview": "Preview: deepened in D2",
+      "misconceptions": [
+        {
+          "text": "★ A collective is a backup — Reality: Replication spreads corruption and deletions; keep point-in-time backups",
+          "origin": "lesson:D2",
+          "kind": "misconception"
+        },
+        {
+          "text": "A collective balances write load — Reality: Every member receives the same writes; it adds read availability",
+          "origin": "lesson:D2",
+          "kind": "misconception"
+        },
+        {
+          "text": "A load balancer works for every service — Reality: Not Analysis or Notifications: they keep state; use a failover cluster",
+          "origin": "lesson:D2",
+          "kind": "misconception"
+        },
+        {
+          "text": "HA means DR is not needed — Reality: HA covers one failure in one place; DR covers losing a site or the data",
+          "origin": "lesson:D2",
+          "kind": "misconception"
+        },
+        {
+          "text": "Backups run, so we are covered — Reality: Only a tested restore proves RPO and RTO",
+          "origin": "lesson:D2",
+          "kind": "misconception"
+        },
+        {
+          "text": "PI to PI is as good as n-way buffering — Reality: If the primary fails, the PI to PI secondary has history but not real-time",
+          "origin": "lesson:D2",
+          "kind": "misconception"
+        }
+      ],
+      "chart": {
+        "kind": "map-steps",
+        "title": "Walkthrough: failure drill",
+        "steps": [
+          {
+            "title": "Collector fails → Interface failover (redundant node)",
+            "nodes": [
+              "coll"
+            ],
+            "caption": "Interface failover (redundant node): Collection continues if one node fails.",
+            "origin": "lesson:D2"
+          },
+          {
+            "title": "Archive primary fails → Collective: primary + secondaries",
+            "nodes": [
+              "archive"
+            ],
+            "caption": "Collective: primary + secondaries: Secondaries keep collecting and serving clients. Clients switch between collective members automatically, without user action.",
+            "origin": "lesson:D2"
+          },
+          {
+            "title": "AF application server fails → Several app servers behind a load balancer",
+            "nodes": [
+              "af"
+            ],
+            "caption": "Several app servers behind a load balancer: Service is stateless and light. The AF SQL database uses a SQL Server Always On availability group (database failover).",
+            "origin": "lesson:D2"
+          },
+          {
+            "title": "Analysis or Notifications fails → Windows Server failover cluster",
+            "nodes": [
+              "analysis"
+            ],
+            "caption": "Windows Server failover cluster: Stateful: load balancing not supported.",
+            "origin": "lesson:D2"
+          },
+          {
+            "title": "Rule",
+            "nodes": [
+              "coll"
+            ],
+            "caption": "Buffers must outlast the restore time (RTO), or live data is lost: RPO and RTO interact.",
+            "origin": "lesson:D2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "operations",
+      "title": "Operations and monitoring",
+      "origin": "lesson:D5",
+      "narration": "PI runs around the clock; problems should be seen before users notice gaps.",
+      "nodes": [
+        "coll",
+        "archive",
+        "af",
+        "analysis"
+      ],
+      "edges": [],
+      "remember": "Most failures are visible early through health signals if someone looks.",
+      "what": "Day-to-day running: monitor health, maintain servers, and control changes.",
+      "facts": [
+        {
+          "text": "Watch stale tags, buffer queues and disk space.",
+          "origin": "lesson:D5"
+        },
+        {
+          "text": "Only a tested restore proves recovery.",
+          "origin": "lesson:D2"
+        },
+        {
+          "text": "Changes go through change control.",
+          "origin": "lesson:D5"
+        }
+      ]
     },
     {
       "id": "all-limits",
@@ -1518,7 +2175,11 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         "Verify: PI Integrator 'PI Views' status.",
         "Verify: ACE retirement date.",
         "Verify: Edge Data Store buffer sizing and retry behaviour.",
-        "To be covered: file and stream loader product name."
+        "To be covered: file and stream loader product name.",
+        {
+          "text": "Reviewed learning-series lessons used: A2, B1.1, D1, D1.1, D1.2, D2, D3, D4, D5, E1, E1.1, E2, E3, E4.",
+          "origin": "lesson:series"
+        }
       ]
     }
   ],
@@ -1621,7 +2282,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         ic.innerHTML = ICONS[n.icon] || ICONS.box;
         var l1 = sv("text", { "class": "l1", x: 0, y: NH / 2 - 19 }, g); l1.textContent = n.l1;
         var l2 = sv("text", { "class": "l2", x: 0, y: NH / 2 - 7 }, g); l2.textContent = n.l2 || "";
-        sv("rect", { "class": "ring", x: -NW / 2 - 4, y: -NH / 2 - 4, width: NW + 8, height: NH + 8, rx: 11 }, g);
+        g.insertBefore(sv("rect", { "class": "ring", x: -NW / 2 - 5, y: -NH / 2 - 5, width: NW + 10, height: NH + 10, rx: 12 }), g.firstChild);
         if (n.store) sv("circle", { "class": "badge " + n.store, cx: NW / 2 - 9, cy: -NH / 2 + 9, r: 5.5, "data-store": n.store }, g);
       }
       nodeEls[n.id] = g;
@@ -1675,8 +2336,9 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
     });
   }
 
-  function setRings(ids) {
+  function setRings(ids, eids) {
     Object.keys(nodeEls).forEach(function (id) { nodeEls[id].setAttribute("data-ring", ids && ids.indexOf(id) >= 0 ? "1" : "0"); });
+    Object.keys(edgeEls).forEach(function (id) { edgeEls[id].path.setAttribute("data-ring", eids && eids.indexOf(id) >= 0 ? "1" : "0"); });
   }
   function simMapSteps(cfg) {
     var frames = cfg.steps.map(function (st) {
@@ -1685,8 +2347,8 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         var r = nodeById[id] && nodeById[id].store;
         if (r && roles.indexOf(r) < 0) roles.push(r);
       });
-      var head = st.title + (roles.length && !st.noRole ? " · " + roles.map(function (r) { return r.charAt(0).toUpperCase() + r.slice(1); }).join(" / ") : "");
-      return { info: { head: head, caption: st.caption, nodes: st.nodes || [] } };
+      var head = st.title + (roles.length && cfg.roles && !st.noRole ? " · " + roles.map(function (r) { return r.charAt(0).toUpperCase() + r.slice(1); }).join(" / ") : "");
+      return { info: { head: head, caption: st.caption, nodes: st.nodes || [], edges: st.edges || [], unmapped: !!st.unmapped } };
     });
     return { frames: frames, N: frames.length, rows: null };
   }
@@ -2034,6 +2696,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       caption.textContent = "";
       if (cinfo.head) { caption.appendChild(el("strong", "chead", cinfo.head)); caption.appendChild(document.createElement("br")); }
       caption.appendChild(document.createTextNode(cinfo.caption));
+      if (cinfo.unmapped) caption.appendChild(el("div", "unmapped", "This direction has no edge on the map."));
       lab.textContent = "Step " + (state.step + 1) + " of " + N;
       back.disabled = state.step === 0; nxt.disabled = state.step === N - 1;
       trs.forEach(function (tr, i) { tr.className = i === state.step ? "cur" : ""; });
@@ -2047,7 +2710,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       cancelAnimationFrame(state.raf);
       var fr = F(i), from = state.cur || fr.n, to = fr.n, t0 = null;
       state.step = i; ui();
-      if (cfg.kind === "map-steps") { setRings(fr.info.nodes); return; }
+      if (cfg.kind === "map-steps") { setRings(fr.info.nodes, fr.info.edges); return; }
       if (!animate || reduced.matches || !state.cur) { state.cur = to; paint(to, fr.info); return; }
       function tick(ts) {
         if (t0 === null) t0 = ts;
@@ -2071,9 +2734,16 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
     d.appendChild(el("h3", null, title));
     return d;
   }
+  function oTag(o) { return null; }  // lesson origins stay in the data; only the "Lessons in this stage" line shows them
   function list(items) {
     var ul = el("ul");
-    items.forEach(function (t) { ul.appendChild(el("li", null, t)); });
+    items.forEach(function (t) {
+      var li = el("li"), isS = typeof t === "string";
+      if (!isS && t.kind) li.appendChild(el("span", "kind", t.kind + ": "));
+      li.appendChild(document.createTextNode(isS ? t : t.text));
+      var tg = isS ? null : oTag(t.origin); if (tg) li.appendChild(tg);
+      ul.appendChild(li);
+    });
     return ul;
   }
   function names(items) {
@@ -2083,6 +2753,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       li.appendChild(el("span", "nm", n.name));
       var extra = n.legacy ? " — legacy: " + n.legacy : n.note ? " — " + n.note : "";
       if (extra) li.appendChild(el("span", "lg", extra));
+      var tg = oTag(n.origin); if (tg) li.appendChild(tg);
       ul.appendChild(li);
     });
     return ul;
@@ -2090,10 +2761,11 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
 
   function collect(kind) {
     var out = [], seen = {};
+    var srcKeys = { limits: ["limits", "misconceptions"], governance: ["governance", "decisions", "parking"] }[kind] || [kind];
     scenes.forEach(function (s) {
       if (s.kind) return;
-      (s[kind] || []).forEach(function (x) {
-        var key = typeof x === "string" ? x : (x.name || x.t);
+      srcKeys.reduce(function (a, k) { return a.concat(s[k] || []); }, []).concat((s.key || []).filter(function (x) { return srcKeys.indexOf(x.from) >= 0; })).forEach(function (x) {
+        var key = typeof x === "string" ? x : (x.name || x.t || x.text);
         if (seen[key]) return;
         seen[key] = true;
         out.push({ scene: s.title, item: x });
@@ -2108,14 +2780,24 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
     var s = idx === 0 ? null : scenes[idx - 1];
     var src = s || data.intro;
     p.appendChild(el("h2", null, s ? idx + ". " + s.title : src.title));
+    if (s) {
+      var ls = {}, scan = function (v) {
+        if (Array.isArray(v)) v.forEach(scan);
+        else if (v && typeof v === "object") { if (typeof v.origin === "string" && v.origin.indexOf("lesson:") === 0) ls[v.origin.slice(7)] = 1; Object.keys(v).forEach(function (k) { if (k !== "origin") scan(v[k]); }); }
+      };
+      if (!s.kind) { scan(s.key); scan(s.facts); scan(s.limits); scan(s.governance); if (!s.misconceptionsHidden) scan(s.misconceptions); scan(s.decisions); scan(s.parking); scan(s.names); scan(s.terms); scan(s.chart); }
+      var lk = Object.keys(ls);
+      if (lk.length) p.appendChild(el("div", "preview", "Lessons in this stage: " + lk.join(", ")));
+    }
     if (s && s.preview) p.appendChild(el("div", "preview", s.preview));
     if (s && s.remember) p.appendChild(el("div", "remember", s.remember));
     activeChart = null;
-    setRings([]);
+    setRings([], []);
     var walk = s && s.chart ? chartBlock(s.chart) : null;
+    var story = !!(s && s.key);
     if (src.what) {
       var wp = el("p", "what");
-      var mm = walk ? src.what.match(/^(.+?[.!?])\s+(.+)$/) : null;
+      var mm = (walk || story) ? src.what.match(/^(.+?[.!?])\s+(.+)$/) : null;
       if (mm) {
         wp.appendChild(document.createTextNode(mm[1] + " "));
         var rest = el("span", "more", mm[2]); rest.hidden = true;
@@ -2132,14 +2814,25 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
       items.forEach(function (o) {
         if (o.scene !== last) { last = o.scene; box = el("div", "sec " + (s.collect === "names" ? "names" : s.collect)); box.appendChild(el("h3", null, o.scene)); p.appendChild(box); }
         if (s.collect === "names") { var ul = names([o.item]); box.appendChild(ul); }
-        else if (s.collect === "terms") { var dl = el("dl"); dl.appendChild(el("dt", null, o.item.t)); dl.appendChild(el("dd", null, o.item.m)); box.appendChild(dl); }
+        else if (s.collect === "terms") { var dl = el("dl"), dt = el("dt", null, o.item.t), tg2 = oTag(o.item.origin); if (tg2) dt.appendChild(tg2); dl.appendChild(dt); dl.appendChild(el("dd", null, o.item.m)); box.appendChild(dl); }
         else box.appendChild(list([o.item]));
       });
       if (!items.length) p.appendChild(el("p", "tbc", TODO));
       return;
     }
 
-    if (src.facts) { var f = section("facts", s ? "Key facts" : "Controls"); f.appendChild(list(src.facts)); p.appendChild(f); }
+    var host = p;
+    if (story) {
+      var kf = section("facts key", "Key facts"); kf.appendChild(list(s.key)); p.appendChild(kf);
+      var nItems = ["facts", "names", "limits", "misconceptions", "governance", "terms"].reduce(function (a, k) { return a + (s[k] || []).length; }, 0) + (s.sample ? 1 : 0) + (s.tbc ? 1 : 0);
+      if (nItems) {
+        var det = el("details", "moredetail");
+        det.appendChild(el("summary", null, "More detail (" + nItems + ")"));
+        det.setAttribute("data-count", String(nItems));
+        p.appendChild(det); host = det;
+      }
+      if (s.facts) { var ff = section("facts", "More facts"); ff.appendChild(list(s.facts)); host.appendChild(ff); }
+    } else if (src.facts) { var f = section("facts", s ? "Key facts" : "Controls"); f.appendChild(list(src.facts)); p.appendChild(f); }
 
     if (s && s.kind === "recap") {
       var j = section("sample", "One value, stage by stage");
@@ -2152,18 +2845,22 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
     if (s && s.sample) {
       var sm = section("sample", "Sample data");
       sm.appendChild(el("p", null, s.sample));
-      p.appendChild(sm);
+      host.appendChild(sm);
     }
-    if (s && s.names) { var n = section("names", "Names"); n.appendChild(names(s.names)); p.appendChild(n); }
-    if (s && s.limits) { var l = section("limits", "Limitations"); l.appendChild(list(s.limits)); p.appendChild(l); }
-    if (s && s.governance) { var g = section("governance", "Governance"); g.appendChild(list(s.governance)); p.appendChild(g); }
+    if (s && s.names) { var n = section("names", "Names"); n.appendChild(names(s.names)); host.appendChild(n); }
+    if (s && s.limits) { var l = section("limits", "Limitations"); l.appendChild(list(s.limits)); host.appendChild(l); }
+    if (s && s.misconceptions && !s.misconceptionsHidden) {
+      var star = s.misconceptions.filter(function (x) { return (typeof x === "string" ? x : x.text).indexOf("★") === 0; }).slice(0, 1);
+      if (star.length) { var mc = section("limits misc", "Misconception to expect"); mc.appendChild(list(star)); host.appendChild(mc); }
+    }
+    if (s && s.governance) { var g = section("governance", "Governance"); g.appendChild(list(s.governance)); host.appendChild(g); }
     if (s && s.terms) {
       var t = section("terms", "Terms");
       var dl2 = el("dl");
-      s.terms.forEach(function (x) { dl2.appendChild(el("dt", null, x.t)); dl2.appendChild(el("dd", null, x.m)); });
-      t.appendChild(dl2); p.appendChild(t);
+      s.terms.forEach(function (x) { var dt2 = el("dt", null, x.t), tg3 = oTag(x.origin); if (tg3) dt2.appendChild(tg3); dl2.appendChild(dt2); dl2.appendChild(el("dd", null, x.m)); });
+      t.appendChild(dl2); host.appendChild(t);
     }
-    if (s && s.tbc) p.appendChild(el("p", "tbc", s.tbc));
+    if (s && s.tbc) host.appendChild(el("p", "tbc", s.tbc));
     if (!s) p.appendChild(el("p", "tbc", data.contentNote));
     if (walk) p.appendChild(walk.ctl);
     p.scrollTop = 0;
