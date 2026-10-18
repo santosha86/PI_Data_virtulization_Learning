@@ -1102,7 +1102,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         }
       ],
       "plain": "The engine reads the question, plans which system does what, sends each system its part, collects the small answers, combines them and applies security. Moving data is the slowest part, so a good plan moves as little as possible.",
-      "example": "Like a project manager who gives each specialist only their task and assembles the results, instead of doing all the work alone."
+      "example": "For \"mill throughput per shift with ore grade\", the engine sends three small requests: PI returns hourly throughput, the lab system returns grade results for the period, and the production system returns shift times. It then joins the three answers by time and shift."
     },
     {
       "id": "pushdown",
@@ -1202,7 +1202,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         }
       ],
       "plain": "Pushdown means asking the source to do the calculation and send only the result. It keeps answers fast and protects PI from heavy load, which matters when many people and AI agents ask questions at once.",
-      "example": "Asking your bank for last month's total spending, instead of having every transaction sent to you to add up yourself."
+      "example": "A dashboard needs last week's hourly average for one mill feed tag. With pushdown, PI calculates the 168 hourly averages and sends only those; without it, every stored value travels to the engine to be averaged there."
     },
     {
       "id": "time-series",
@@ -1612,7 +1612,7 @@ body.hide-sample .sec.sample, body.hide-terms .sec.terms { display: none; }
         }
       ],
       "plain": "The network is divided into zones by trust: plant, DMZ, corporate, cloud. Site PI sends a copy outward to the enterprise PI server. The virtual layer reads that copy, never the plant, so no corporate user or malware can reach the control network.",
-      "example": "Like a company mail room: couriers deliver there, staff collect from there, and neither walks into the other's area."
+      "example": "A corporate dashboard showing a mill's pressure reads the enterprise PI server, which holds the copy sent out from site PI. If the layer pointed at site PI instead, every corporate query would cross into the plant network."
     },
     {
       "id": "security",
